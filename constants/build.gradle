@@ -1,0 +1,56 @@
+description = 'Conscrypt: Constants'
+
+ext {
+    genDir = "${project.buildDir}/generated-sources"
+    genConstExecutable = 'exe/gen/gen'
+}
+
+// Needs to be binary-compatible with Android minSdkVersion.
+sourceCompatibility = androidMinJavaVersion
+targetCompatibility = androidMinJavaVersion
+
+sourceSets.main {
+    java {
+        srcDirs = [
+            "${genDir}"
+        ]
+    }
+}
+
+dependencies {
+    compile files("${genDir}") {
+        builtBy 'runGen'
+    }
+}
+
+// Generate javadoc and sources JAR
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+model {
+    components {
+        // Builds exe/ which generates the content of NativeConstants.java
+        gen(NativeExecutableSpec) {
+            sources {
+                cpp {
+                    // Sources assumed to be in src/gen/cpp by default.
+                    exportedHeaders {
+                        srcDirs "${boringsslIncludeDir}"
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Runs generateNativeConstants to create build/NativeConstants.java
+task runGen(type:Exec)  {
+    File genDir = new File("${genDir}/org/conscrypt")
+    genDir.mkdirs()
+
+    workingDir new File("${project.buildDir}")
+    executable "${genConstExecutable}"
+    standardOutput = new FileOutputStream(new File(genDir, "NativeConstants.java"))
+}
+runGen.dependsOn 'genExecutable'

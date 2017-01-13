@@ -1,0 +1,112 @@
+apply plugin: "com.google.osdetector"
+
+description = 'Conscrypt: OpenJdk'
+
+ext {
+    jniSourceDir = "$rootDir/common/src/jni"
+    jniLibName = "conscrypt_openjdk_jni-$osdetector.classifier"
+    jniLibTaskName = "${jniLibName}SharedLibrary"
+
+    assert file("$jniSourceDir").exists()
+}
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+sourceSets.main {
+    java {
+        srcDirs = [
+                "${rootDir}/common/src/main/java",
+                "src/main/java"
+        ]
+    }
+}
+
+dependencies {
+    compile project(':conscrypt-constants')
+
+    testCompile libraries.bouncycastle_provider,
+                libraries.bouncycastle_apis,
+                libraries.junit,
+                libraries.mockito
+}
+
+// Make sure we build and copy the native library to the output directory.
+compileJava.dependsOn 'copyNativeLib'
+
+// Set the platform-specific classifier on the artifact.
+jar {
+    classifier = osdetector.classifier
+}
+
+void configureGcc(GccCommandLineToolConfiguration cppCompiler, GccCommandLineToolConfiguration linker) {
+    cppCompiler.withArguments { args ->
+        args << "-Wall"
+        args << "-fPIC"
+        args << "-O2"
+        args << "-std=c++11"
+        args << "-I$jniSourceDir/main/include"
+        args << "-I$jniSourceDir/unbundled/include"
+        args << "-I$boringsslIncludeDir"
+        args << "-I$jdkIncludeDir"
+        if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
+            args << "-I$jdkIncludeDir/linux"
+        } else if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+            args << "-I$jdkIncludeDir/darwin"
+        } else if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+            args << "-I$jdkIncludeDir/win32"
+        }
+    }
+    linker.withArguments { args ->
+        args << "-O2"
+        args << "-L$boringsslSslBuildDir"
+        args << "-L$boringsslCryptoBuildDir"
+        args << "-lstdc++"
+        args << "-lssl"
+        args << "-lcrypto"
+    }
+}
+
+model {
+    toolChains {
+        clang(Clang) {
+            eachPlatform {
+                configureGcc(cppCompiler, linker)
+            }
+        }
+        gcc(Gcc) {
+            eachPlatform {
+                configureGcc(cppCompiler, linker)
+            }
+        }
+    }
+    components {
+        // Builds the JNI library.
+        "$jniLibName"(NativeLibrarySpec) {
+            sources {
+                cpp {
+                    source {
+                        srcDirs = [
+                                "$jniSourceDir/unbundled/cpp",
+                                "$jniSourceDir/main/cpp"
+                        ]
+                    }
+                }
+            }
+
+            binaries {
+                // Never build a static library.
+                withType(StaticLibraryBinarySpec) {
+                    buildable = false
+                }
+            }
+        }
+    }
+}
+
+// Copies the native library to a resource location that will be included in the jar.
+task copyNativeLib(type: Copy, dependsOn: "$jniLibTaskName") {
+    from "build/libs/${jniLibName}/shared"
+    // This location will automatically be included in the jar.
+    into 'build/resources/main/META-INF/native'
+}

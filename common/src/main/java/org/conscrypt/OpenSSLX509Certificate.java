@@ -24,6 +24,7 @@ import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Principal;
+import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
@@ -51,6 +52,8 @@ import javax.security.auth.x500.X500Principal;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
 public class OpenSSLX509Certificate extends X509Certificate {
+    private static final long serialVersionUID = 1992239142393372128L;
+
     private transient final long mContext;
     private transient Integer mHashCode;
 
@@ -324,7 +327,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
             return kusage;
         }
 
-        final boolean resized[] = new boolean[9];
+        final boolean[] resized = new boolean[9];
         System.arraycopy(kusage, 0, resized, 0, kusage.length);
         return resized;
     }
@@ -349,8 +352,8 @@ public class OpenSSLX509Certificate extends X509Certificate {
     }
 
     private void verifyOpenSSL(OpenSSLKey pkey) throws CertificateException,
-            NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
-            SignatureException {
+                                                       NoSuchAlgorithmException,
+                                                       InvalidKeyException, SignatureException {
         try {
             NativeCrypto.X509_verify(mContext, pkey.getNativeRef());
         } catch (RuntimeException e) {
@@ -386,7 +389,7 @@ public class OpenSSLX509Certificate extends X509Certificate {
             return;
         }
 
-        verifyInternal(key, null);
+        verifyInternal(key, (String) null);
     }
 
     @Override
@@ -394,6 +397,30 @@ public class OpenSSLX509Certificate extends X509Certificate {
             NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException,
             SignatureException {
         verifyInternal(key, sigProvider);
+    }
+
+    @Override
+    public void verify(PublicKey key, Provider sigProvider)
+            throws CertificateException, NoSuchAlgorithmException, InvalidKeyException,
+                   SignatureException {
+        if (key instanceof OpenSSLKeyHolder && sigProvider instanceof OpenSSLProvider) {
+            OpenSSLKey pkey = ((OpenSSLKeyHolder) key).getOpenSSLKey();
+            verifyOpenSSL(pkey);
+            return;
+        }
+
+        final Signature sig;
+        if (sigProvider == null) {
+            sig = Signature.getInstance(getSigAlgName());
+        } else {
+            sig = Signature.getInstance(getSigAlgName(), sigProvider);
+        }
+
+        sig.initVerify(key);
+        sig.update(getTBSCertificate());
+        if (!sig.verify(getSignature())) {
+            throw new SignatureException("signature did not verify");
+        }
     }
 
     @Override

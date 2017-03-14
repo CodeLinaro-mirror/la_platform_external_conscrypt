@@ -92,6 +92,23 @@ LOCAL_REQUIRED_MODULES := libjavacrypto
 LOCAL_JAVA_LANGUAGE_VERSION := 1.7
 include $(BUILD_JAVA_LIBRARY)
 
+# A guaranteed unstripped version of conscrypt.
+# The build system may or may not strip the conscrypt jar, but this one will
+# not be stripped. See b/24535627.
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := $(common_java_files)
+LOCAL_SRC_FILES += $(call all-java-files-under,platform/src/main/java)
+LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
+LOCAL_JAVA_LIBRARIES := core-oj core-libart
+LOCAL_NO_STANDARD_LIBRARIES := true
+LOCAL_JAVACFLAGS := $(local_javac_flags)
+LOCAL_JARJAR_RULES := $(LOCAL_PATH)/jarjar-rules.txt
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := conscrypt-testdex
+LOCAL_REQUIRED_MODULES := libjavacrypto
+LOCAL_JAVA_LANGUAGE_VERSION := 1.7
+include $(BUILD_JAVA_LIBRARY)
+
 # Create the conscrypt library without jarjar for tests
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(common_java_files)
@@ -109,9 +126,10 @@ bundled_test_java_files := $(filter-out \
 	%/org/conscrypt/NativeCryptoTest.java \
 	%/org/conscrypt/OpenSSLSocketImplTest.java \
 	, $(call all-java-files-under,openjdk/src/test/java))
-bundled_test_java_files := $(foreach j,$(bundled_test_java_files),\
-	$(if $(findstring openjdk/src/test/java/libcore/,$(j)),,$(j)))
 bundled_test_java_files += $(call all-java-files-under,platform/src/test/java)
+bundled_test_java_files += $(call all-java-files-under,testing/src/main/java)
+bundled_test_java_files := $(foreach j,$(bundled_test_java_files),\
+	$(if $(findstring testing/src/main/java/libcore/,$(j)),,$(j)))
 
 ifeq ($(LIBCORE_SKIP_TESTS),)
 # Make the conscrypt-tests library.
@@ -152,7 +170,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(common_java_files)
 LOCAL_SRC_FILES += $(call all-java-files-under,android/src/main/java)
 LOCAL_GENERATED_SOURCES := $(conscrypt_gen_java_files)
-LOCAL_SDK_VERSION := 16
+LOCAL_SDK_VERSION := current
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := conscrypt_unbundled
@@ -164,7 +182,7 @@ include $(BUILD_STATIC_JAVA_LIBRARY)
 # Stub library for unbundled builds
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := $(call all-java-files-under,android-stub/src/main/java)
-LOCAL_SDK_VERSION := 16
+LOCAL_SDK_VERSION := current
 LOCAL_JAVACFLAGS := $(local_javac_flags)
 LOCAL_MODULE := conscrypt-stubs
 LOCAL_JACK_FLAGS := -D jack.classpath.default-libraries=false

@@ -4612,7 +4612,7 @@ static jlong NativeCrypto_EVP_get_cipherbyname(JNIEnv* env, jclass, jstring algo
     } else if (strcasecmp(alg, "des-cbc") == 0) {
         cipher = EVP_des_cbc();
     } else if (strcasecmp(alg, "des-ede-cbc") == 0) {
-        cipher = EVP_des_cbc();
+        cipher = EVP_des_ede_cbc();
     } else if (strcasecmp(alg, "des-ede3-cbc") == 0) {
         cipher = EVP_des_ede3_cbc();
     } else if (strcasecmp(alg, "aes-128-ecb") == 0) {
@@ -8112,14 +8112,6 @@ static jlong NativeCrypto_SSL_CTX_new(JNIEnv* env, jclass) {
     SSL_CTX_set_client_cert_cb(sslCtx.get(), client_cert_cb);
     SSL_CTX_set_tmp_rsa_callback(sslCtx.get(), tmp_rsa_callback);
     SSL_CTX_set_tmp_dh_callback(sslCtx.get(), tmp_dh_callback);
-
-    // If negotiating ECDH, use P-256.
-    Unique_EC_KEY ec(EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
-    if (ec.get() == nullptr) {
-        throwExceptionIfNecessary(env, "EC_KEY_new_by_curve_name");
-        return 0;
-    }
-    SSL_CTX_set_tmp_ecdh(sslCtx.get(), ec.get());
 
     JNI_TRACE("NativeCrypto_SSL_CTX_new => %p", sslCtx.get());
     return (jlong) sslCtx.release();

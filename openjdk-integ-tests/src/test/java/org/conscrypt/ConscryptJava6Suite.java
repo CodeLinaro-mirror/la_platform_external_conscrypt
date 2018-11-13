@@ -36,6 +36,7 @@ import org.conscrypt.java.security.KeyPairGeneratorTestRSA;
 import org.conscrypt.java.security.MessageDigestTest;
 import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
+import org.conscrypt.java.security.cert.X509CertificateTest;
 import org.conscrypt.javax.crypto.CipherBasicsTest;
 import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
 import org.conscrypt.javax.crypto.KeyGeneratorTest;
@@ -45,6 +46,7 @@ import org.conscrypt.javax.net.ssl.KeyStoreBuilderParametersTest;
 import org.conscrypt.javax.net.ssl.SNIHostNameTest;
 import org.conscrypt.javax.net.ssl.SSLContextTest;
 import org.conscrypt.javax.net.ssl.SSLEngineTest;
+import org.conscrypt.javax.net.ssl.SSLEngineVersionCompatibilityTest;
 import org.conscrypt.javax.net.ssl.SSLParametersTest;
 import org.conscrypt.javax.net.ssl.SSLServerSocketFactoryTest;
 import org.conscrypt.javax.net.ssl.SSLServerSocketTest;
@@ -52,6 +54,7 @@ import org.conscrypt.javax.net.ssl.SSLSessionContextTest;
 import org.conscrypt.javax.net.ssl.SSLSessionTest;
 import org.conscrypt.javax.net.ssl.SSLSocketFactoryTest;
 import org.conscrypt.javax.net.ssl.SSLSocketTest;
+import org.conscrypt.javax.net.ssl.SSLSocketVersionCompatibilityTest;
 import org.conscrypt.javax.net.ssl.TrustManagerFactoryTest;
 import org.conscrypt.javax.net.ssl.X509KeyManagerTest;
 import org.junit.BeforeClass;
@@ -62,6 +65,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
         // java.security tests
         CertificateFactoryTest.class,
+        X509CertificateTest.class,
         AlgorithmParameterGeneratorTestDH.class,
         AlgorithmParameterGeneratorTestDSA.class,
         AlgorithmParametersPSSTest.class,
@@ -94,6 +98,7 @@ import org.junit.runners.Suite;
         SNIHostNameTest.class,
         SSLContextTest.class,
         SSLEngineTest.class,
+        SSLEngineVersionCompatibilityTest.class,
         SSLParametersTest.class,
         SSLServerSocketFactoryTest.class,
         SSLServerSocketTest.class,
@@ -101,6 +106,7 @@ import org.junit.runners.Suite;
         SSLSessionTest.class,
         SSLSocketFactoryTest.class,
         SSLSocketTest.class,
+        SSLSocketVersionCompatibilityTest.class,
         TrustManagerFactoryTest.class,
         X509KeyManagerTest.class,
 })

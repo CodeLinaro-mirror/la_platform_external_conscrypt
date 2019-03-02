@@ -125,6 +125,15 @@ cc_library_host_shared {
     },
 
     stl: "libc++_static",
+
+    // The post-build signing tools need signapk.jar and its shared libs
+    multilib: {
+        lib64: {
+            dist: {
+                targets: ["droidcore"],
+            },
+        },
+    },
 }
 
 cc_binary_host {
@@ -226,6 +235,9 @@ java_library {
     installable: true,
 
     static_libs: ["conscrypt"],
+    dex_preopt: {
+        enabled: false,
+    },
 
     no_framework_libs: true,
 
@@ -258,11 +270,10 @@ cc_library_shared {
     defaults: ["libjavacrypto-defaults"],
 
     cflags: ["-DJNI_JARJAR_PREFIX=com/android/"],
+    header_libs: ["libnativehelper_header_only"],
     shared_libs: [
         "libcrypto",
-        "libjavacore",
         "liblog",
-        "libnativehelper",
         "libssl",
     ],
 
@@ -348,7 +359,6 @@ java_test {
     system_modules: "core-all-system-modules",
 
     static_libs: [
-        "core-tests-support",
         "bouncycastle-unbundled",
         "bouncycastle-bcpkix-unbundled",
         "bouncycastle-ocsp-unbundled",
@@ -383,9 +393,6 @@ java_test {
     ],
     system_modules: "core-all-system-modules",
 
-    static_libs: [
-        "core-tests-support",
-    ],
     javacflags: [
         "-Xmaxwarns 9999999",
         //"-Xlint:all",

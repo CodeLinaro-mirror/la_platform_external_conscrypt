@@ -85,8 +85,13 @@ final class Platform {
      * Default name used in the {@link java.security.Security JCE system} by {@code OpenSSLProvider}
      * if the default constructor is used.
      */
-    static String getDefaultProviderName() {
+    // @VisibleForTesting - used by CTS
+    public static String getDefaultProviderName() {
         return "AndroidOpenSSL";
+    }
+
+    static boolean provideTrustManagerByDefault() {
+        return false;
     }
 
     static FileDescriptor getFileDescriptor(Socket s) {
@@ -273,13 +278,6 @@ final class Platform {
         }
     }
 
-    /**
-     * Returns true if the supplied hostname is an literal IP address.
-     */
-    static boolean isLiteralIpAddress(String hostname) {
-        return InetAddress.isNumeric(hostname);
-    }
-
     static SSLEngine wrapEngine(ConscryptEngine engine) {
         return new Java8EngineWrapper(engine);
     }
@@ -436,7 +434,7 @@ final class Platform {
     /**
      * Provides extended capabilities for the session if supported by the platform.
      */
-    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+    static SSLSession wrapSSLSession(ExternalSession sslSession) {
         return new Java8ExtendedSSLSession(sslSession);
     }
 

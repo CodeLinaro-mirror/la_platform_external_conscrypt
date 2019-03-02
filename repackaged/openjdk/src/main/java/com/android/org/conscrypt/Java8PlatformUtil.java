@@ -78,7 +78,7 @@ final class Java8PlatformUtil {
         params.setUseCipherSuitesOrder(impl.getUseCipherSuitesOrder());
         if (impl.getUseSni() && AddressUtils.isValidSniHostname(engine.getHostname())) {
             params.setServerNames(Collections.singletonList(
-                    (SNIServerName) new SNIHostName((engine.getHostname()))));
+                    (SNIServerName) new SNIHostName(engine.getHostname())));
         }
     }
 
@@ -90,7 +90,7 @@ final class Java8PlatformUtil {
         return Java8EngineWrapper.getDelegate(engine);
     }
 
-    static SSLSession wrapSSLSession(ConscryptSession sslSession) {
+    static SSLSession wrapSSLSession(ExternalSession sslSession) {
         return new Java8ExtendedSSLSession(sslSession);
     }
 

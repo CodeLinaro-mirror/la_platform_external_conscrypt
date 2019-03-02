@@ -67,7 +67,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import libcore.java.security.StandardNames;
 import com.android.org.conscrypt.Conscrypt;
 import com.android.org.conscrypt.TestUtils;
 import org.junit.AfterClass;
@@ -173,8 +172,8 @@ public class SignatureTest {
             kpAlgorithm = "EC";
         } else if (sigAlgorithmUpperCase.endsWith("DSA")) {
             kpAlgorithm = "DSA";
-        } else if ((sigAlgorithmUpperCase.endsWith("RSA"))
-                || (sigAlgorithmUpperCase.endsWith("RSA/PSS"))) {
+        } else if (sigAlgorithmUpperCase.endsWith("RSA")
+                || sigAlgorithmUpperCase.endsWith("RSA/PSS")) {
             kpAlgorithm = "RSA";
         } else {
             throw new Exception("Unknown KeyPair algorithm for Signature algorithm "

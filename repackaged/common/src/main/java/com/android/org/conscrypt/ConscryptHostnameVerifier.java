@@ -1,6 +1,6 @@
 /* GENERATED SOURCE. DO NOT MODIFY. */
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright 2019 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,28 +15,22 @@
  * limitations under the License.
  */
 
-package com.android.org.conscrypt.ct;
+package com.android.org.conscrypt;
 
-import com.android.org.conscrypt.Internal;
+import javax.net.ssl.SSLSession;
 
 /**
+ * This interface is used to implement hostname verification in Conscrypt.  Unlike with
+ * {@link javax.net.ssl.HostnameVerifier}, the hostname verifier is called whenever hostname
+ * verification is needed, without any use of default rules.
  * @hide This class is not part of the Android public SDK API
  */
-@Internal
-public class SerializationException extends Exception {
-    public SerializationException() {
-    }
+public interface ConscryptHostnameVerifier {
 
-    public SerializationException(String message) {
-        super(message);
-    }
+  /**
+   * Returns whether the given hostname is allowable given the peer's authentication information
+   * from the given session.
+   */
+  boolean verify(String hostname, SSLSession session);
 
-    public SerializationException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public SerializationException(Throwable cause) {
-        super(cause);
-    }
 }
-

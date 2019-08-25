@@ -236,6 +236,29 @@ public class SSLSocketTest {
     }
 
     @Test
+    public void test_SSLSocket_getInputStream_available() throws Exception {
+        TestSSLSocketPair pair = TestSSLSocketPair.create().connect();
+
+        pair.client.getOutputStream().write(new byte[] { 1, 2, 3, 4 });
+        // We read a single byte first because it's okay if available() returns zero
+        // before we've checked the network to see if any packets are available to
+        // be decrypted, but we should show available bytes once we've decrypted a packet
+        assertEquals(1, pair.server.getInputStream().read());
+        assertTrue(pair.server.getInputStream().available() > 0);
+        assertEquals(3, pair.server.getInputStream().read(new byte[4]));
+        assertEquals(0, pair.server.getInputStream().available());
+
+        pair.server.getOutputStream().write(new byte[] { 1, 2, 3, 4 });
+        // We read a single byte first because it's okay if available() returns zero
+        // before we've checked the network to see if any packets are available to
+        // be decrypted, but we should show available bytes once we've decrypted a packet
+        assertEquals(1, pair.client.getInputStream().read());
+        assertTrue(pair.client.getInputStream().available() > 0);
+        assertEquals(3, pair.client.getInputStream().read(new byte[4]));
+        assertEquals(0, pair.client.getInputStream().available());
+    }
+
+    @Test
     public void test_SSLSocket_getEnabledCipherSuites_returnsCopies() throws Exception {
         SSLSocketFactory sf = (SSLSocketFactory) SSLSocketFactory.getDefault();
         SSLSocket ssl = (SSLSocket) sf.createSocket();
@@ -388,7 +411,6 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_noncontiguousProtocols_useLower() throws Exception {
         TestSSLContext c = TestSSLContext.create();
-        SSLContext serverContext = c.serverContext;
         SSLContext clientContext = c.clientContext;
         SSLSocket client = (SSLSocket)
                 clientContext.getSocketFactory().createSocket(c.host, c.port);
@@ -420,7 +442,6 @@ public class SSLSocketTest {
     @Test
     public void test_SSLSocket_noncontiguousProtocols_canNegotiate() throws Exception {
         TestSSLContext c = TestSSLContext.create();
-        SSLContext serverContext = c.serverContext;
         SSLContext clientContext = c.clientContext;
         SSLSocket client = (SSLSocket)
                 clientContext.getSocketFactory().createSocket(c.host, c.port);
@@ -463,7 +484,7 @@ public class SSLSocketTest {
     }
 
     @Test
-    public void test_SSLSocket_getHandshakeSession_duringHandshake() throws Exception {
+    public void test_SSLSocket_getHandshakeSession_duringHandshake_client() throws Exception {
         // We can't reference the actual context we're using, since we need to pass
         // the test trust manager in to construct it, so create reference objects that
         // we can test against.
@@ -471,6 +492,7 @@ public class SSLSocketTest {
         final SSLSocket referenceClientSocket =
             (SSLSocket) referenceContext.clientContext.getSocketFactory().createSocket();
 
+        final boolean[] wasCalled = new boolean[1];
         TestSSLContext c = TestSSLContext.newBuilder()
             .clientTrustManager(new X509ExtendedTrustManager() {
                 @Override
@@ -491,6 +513,7 @@ public class SSLSocketTest {
                         assertEquals(referenceContext.host.getHostName(), session.getPeerHost());
                         assertEquals(referenceClientSocket.getEnabledCipherSuites()[0],
                             session.getCipherSuite());
+                        wasCalled[0] = true;
                     } catch (Exception e) {
                         throw new CertificateException("Something broke", e);
                     }
@@ -543,6 +566,102 @@ public class SSLSocketTest {
         client.close();
         server.close();
         c.close();
+        assertTrue(wasCalled[0]);
+    }
+
+    @Test
+    public void test_SSLSocket_getHandshakeSession_duringHandshake_server() throws Exception {
+        // We can't reference the actual context we're using, since we need to pass
+        // the test trust manager in to construct it, so create reference objects that
+        // we can test against.
+        final TestSSLContext referenceContext = TestSSLContext.create();
+        final SSLSocket referenceClientSocket =
+            (SSLSocket) referenceContext.clientContext.getSocketFactory().createSocket();
+
+        final boolean[] wasCalled = new boolean[1];
+        TestSSLContext c = TestSSLContext.newBuilder()
+            .client(TestKeyStore.getClientCertificate())
+            .serverTrustManager(new X509ExtendedTrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
+                    Socket socket) throws CertificateException {
+                    try {
+                        SSLSocket sslSocket = (SSLSocket) socket;
+                        SSLSession session = sslSocket.getHandshakeSession();
+                        assertNotNull(session);
+                        // By the point of the handshake where we're validating client certificates,
+                        // the cipher suite should be agreed and the server's own certificates
+                        // should have been delivered
+                        assertEquals(referenceClientSocket.getEnabledCipherSuites()[0],
+                            session.getCipherSuite());
+                        assertNotNull(session.getLocalCertificates());
+                        assertEquals("CN=localhost",
+                            ((X509Certificate) session.getLocalCertificates()[0])
+                                .getSubjectDN().getName());
+                        assertEquals("CN=Test Intermediate Certificate Authority",
+                            ((X509Certificate) session.getLocalCertificates()[0])
+                                .getIssuerDN().getName());
+                        wasCalled[0] = true;
+                    } catch (Exception e) {
+                        throw new CertificateException("Something broke", e);
+                    }
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
+                    Socket socket) throws CertificateException {
+                    throw new CertificateException("Shouldn't be called");
+                }
+
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s,
+                    SSLEngine sslEngine) throws CertificateException {
+                    throw new CertificateException("Shouldn't be called");
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s,
+                    SSLEngine sslEngine) throws CertificateException {
+                    throw new CertificateException("Shouldn't be called");
+                }
+
+                @Override
+                public void checkClientTrusted(X509Certificate[] x509Certificates, String s)
+                    throws CertificateException {
+                    throw new CertificateException("Shouldn't be called");
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] x509Certificates, String s)
+                    throws CertificateException {
+                    throw new CertificateException("Shouldn't be called");
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return referenceContext.serverTrustManager.getAcceptedIssuers();
+                }
+            }).build();
+        SSLContext clientContext = c.clientContext;
+        SSLSocket client = (SSLSocket)
+            clientContext.getSocketFactory().createSocket(c.host, c.port);
+        final SSLSocket server = (SSLSocket) c.serverSocket.accept();
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<Void> future = executor.submit(new Callable<Void>() {
+            @Override public Void call() throws Exception {
+                server.setNeedClientAuth(true);
+                server.startHandshake();
+                return null;
+            }
+        });
+        executor.shutdown();
+        client.startHandshake();
+
+        future.get();
+        client.close();
+        server.close();
+        c.close();
+        assertTrue(wasCalled[0]);
     }
 
     @Test

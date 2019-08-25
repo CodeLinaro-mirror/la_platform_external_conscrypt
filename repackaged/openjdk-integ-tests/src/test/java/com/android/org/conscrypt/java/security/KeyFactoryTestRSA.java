@@ -16,6 +16,7 @@
  */
 package com.android.org.conscrypt.java.security;
 
+import dalvik.system.VMRuntime;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.PrivateKey;
@@ -24,9 +25,12 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPrivateKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import sun.security.jca.Providers;
 
 /**
  * @hide This class is not part of the Android public SDK API
@@ -34,8 +38,22 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class KeyFactoryTestRSA extends
         AbstractKeyFactoryTest<RSAPublicKeySpec, RSAPrivateKeySpec> {
+    // BEGIN Android-Added: Allow access to deprecated BC algorithms.
+    // Allow access to deprecated BC algorithms in this test, so we can ensure they
+    // continue to work
+    @BeforeClass
+    public static void enableDeprecatedAlgorithms() {
+        Providers.setMaximumAllowableApiLevelForBcDeprecation(
+                VMRuntime.getRuntime().getTargetSdkVersion());
+    }
 
-    @SuppressWarnings("unchecked")
+    @AfterClass
+    public static void restoreDeprecatedAlgorithms() {
+        Providers.setMaximumAllowableApiLevelForBcDeprecation(
+                Providers.DEFAULT_MAXIMUM_ALLOWABLE_TARGET_API_LEVEL_FOR_BC_DEPRECATION);
+    }
+    // END Android-Added: Allow access to deprecated BC algorithms.
+
     public KeyFactoryTestRSA() {
         super("RSA", RSAPublicKeySpec.class, RSAPrivateKeySpec.class);
     }

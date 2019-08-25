@@ -251,6 +251,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
                 }
             }
         } catch (SSLException e) {
+            drainOutgoingQueue();
             close();
             throw e;
         } catch (IOException e) {
@@ -538,6 +539,18 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
         }
     }
 
+    private void drainOutgoingQueue() {
+        try {
+            while (engine.pendingOutboundEncryptedBytes() > 0) {
+                out.writeInternal(EMPTY_BUFFER);
+                // Always flush handshake frames immediately.
+                out.flushInternal();
+            }
+        } catch (IOException e) {
+            // Ignore
+        }
+    }
+
     private OutputStream getUnderlyingOutputStream() throws IOException {
         return super.getOutputStream();
     }
@@ -725,8 +738,7 @@ class ConscryptEngineSocket extends OpenSSLSocketImpl {
             startHandshake();
             synchronized (readLock) {
                 init();
-                return fromEngine.remaining()
-                        + (fromSocket.hasRemaining() || socketInputStream.available() > 0 ? 1 : 0);
+                return fromEngine.remaining();
             }
         }
 

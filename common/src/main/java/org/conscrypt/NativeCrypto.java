@@ -321,6 +321,10 @@ public final class NativeCrypto {
 
     static native long EVP_aead_chacha20_poly1305();
 
+    static native long EVP_aead_aes_128_gcm_siv();
+
+    static native long EVP_aead_aes_256_gcm_siv();
+
     static native int EVP_AEAD_max_overhead(long evpAead);
 
     static native int EVP_AEAD_nonce_length(long evpAead);
@@ -522,7 +526,9 @@ public final class NativeCrypto {
 
     static native byte[] get_X509_CRL_signature(long x509ctx, OpenSSLX509CRL holder);
 
-    static native void X509_CRL_verify(long x509CrlCtx, OpenSSLX509CRL holder, NativeRef.EVP_PKEY pkeyCtx);
+    static native void X509_CRL_verify(long x509CrlCtx, OpenSSLX509CRL holder,
+        NativeRef.EVP_PKEY pkeyCtx) throws BadPaddingException, SignatureException,
+        NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException;
 
     static native byte[] get_X509_CRL_crl_enc(long x509CrlCtx, OpenSSLX509CRL holder);
 

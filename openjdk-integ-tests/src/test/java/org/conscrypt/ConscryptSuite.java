@@ -30,6 +30,7 @@ import org.conscrypt.java.security.AlgorithmParametersTestGCM;
 import org.conscrypt.java.security.AlgorithmParametersTestOAEP;
 import org.conscrypt.java.security.KeyFactoryTestDH;
 import org.conscrypt.java.security.KeyFactoryTestDSA;
+import org.conscrypt.java.security.KeyFactoryTestEC;
 import org.conscrypt.java.security.KeyFactoryTestRSA;
 import org.conscrypt.java.security.KeyPairGeneratorTest;
 import org.conscrypt.java.security.KeyPairGeneratorTestDH;
@@ -38,7 +39,9 @@ import org.conscrypt.java.security.KeyPairGeneratorTestRSA;
 import org.conscrypt.java.security.MessageDigestTest;
 import org.conscrypt.java.security.SignatureTest;
 import org.conscrypt.java.security.cert.CertificateFactoryTest;
+import org.conscrypt.java.security.cert.X509CRLTest;
 import org.conscrypt.java.security.cert.X509CertificateTest;
+import org.conscrypt.javax.crypto.AeadCipherTest;
 import org.conscrypt.javax.crypto.CipherBasicsTest;
 import org.conscrypt.javax.crypto.CipherTest;
 import org.conscrypt.javax.crypto.ECDHKeyAgreementTest;
@@ -69,6 +72,7 @@ import org.junit.runners.Suite;
         // java.security tests
         CertificateFactoryTest.class,
         X509CertificateTest.class,
+        X509CRLTest.class,
         AlgorithmParameterGeneratorTestDH.class,
         AlgorithmParameterGeneratorTestDSA.class,
         AlgorithmParametersPSSTest.class,
@@ -81,6 +85,7 @@ import org.junit.runners.Suite;
         AlgorithmParametersTestOAEP.class,
         KeyFactoryTestDH.class,
         KeyFactoryTestDSA.class,
+        KeyFactoryTestEC.class,
         KeyFactoryTestRSA.class,
         KeyPairGeneratorTest.class,
         KeyPairGeneratorTestDH.class,
@@ -89,6 +94,7 @@ import org.junit.runners.Suite;
         MessageDigestTest.class,
         SignatureTest.class,
         // javax.crypto tests
+        AeadCipherTest.class,
         CipherBasicsTest.class,
         CipherTest.class,
         ECDHKeyAgreementTest.class,

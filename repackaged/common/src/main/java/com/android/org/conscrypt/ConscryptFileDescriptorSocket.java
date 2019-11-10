@@ -388,6 +388,13 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
+    public final void serverCertificateRequested() throws IOException {
+        synchronized (ssl) {
+            ssl.configureServerCertificate();
+        }
+    }
+
+    @Override
     public final void verifyCertificateChain(byte[][] certChain, String authMethod)
             throws CertificateException {
         try {
@@ -756,7 +763,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      *
      * @param useSessionTickets True to enable session tickets
      */
-    @dalvik.annotation.compat.UnsupportedAppUsage(maxTargetSdk = dalvik.system.VersionCodes.Q,
+    @dalvik.annotation.compat.
+    UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives = "Use {@link android.net.ssl.SSLSockets#setUseSessionTickets}.")
     @Override
     public final void
@@ -770,7 +778,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      *
      * @param hostname the desired SNI hostname, or null to disable
      */
-    @dalvik.annotation.compat.UnsupportedAppUsage(maxTargetSdk = dalvik.system.VersionCodes.Q,
+    @dalvik.annotation.compat.
+    UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives = "Use {@link javax.net.ssl.SSLParameters#setServerNames}.")
     @Override
     public final void
@@ -1083,7 +1092,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         } finally {
             super.finalize();
         }
-
     }
 
     @Override
@@ -1173,7 +1181,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     private void transitionTo(int newState) {
         switch (newState) {
             case STATE_CLOSED: {
-                if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED ) {
+                if (!ssl.isClosed() && state >= STATE_HANDSHAKE_STARTED && state < STATE_CLOSED) {
                     closedSession = new SessionSnapshot(activeSession);
                 }
                 break;

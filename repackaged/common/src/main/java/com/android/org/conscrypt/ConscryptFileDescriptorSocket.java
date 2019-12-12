@@ -1106,6 +1106,15 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
+    public int selectApplicationProtocol(byte[] protocols) {
+        ApplicationProtocolSelectorAdapter adapter = sslParameters.getApplicationProtocolSelector();
+        if (adapter == null) {
+            return NativeConstants.SSL_TLSEXT_ERR_NOACK;
+        }
+        return adapter.selectApplicationProtocol(protocols);
+    }
+
+    @Override
     final void setApplicationProtocols(String[] protocols) {
         sslParameters.setApplicationProtocols(protocols);
     }
@@ -1117,7 +1126,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public final String getApplicationProtocol() {
-        return SSLUtils.toProtocolString(ssl.getApplicationProtocol());
+        return provideSession().getApplicationProtocol();
     }
 
     @Override

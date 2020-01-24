@@ -195,6 +195,10 @@ java_library {
         "//system/apex/tests",
         ":__subpackages__",
     ],
+    apex_available: [
+        "com.android.conscrypt",
+        "test_com.android.conscrypt",
+    ],
     installable: true,
     hostdex: true,
 
@@ -202,6 +206,8 @@ java_library {
         ":conscrypt_java_files",
         ":conscrypt_public_api_files",
     ],
+
+    libs: ["unsupportedappusage"],
 
     // Conscrypt can be updated independently from the other core libraries so it must only depend
     // on public SDK and intra-core APIs.
@@ -408,6 +414,15 @@ cc_defaults {
 
     srcs: ["common/src/jni/main/cpp/**/*.cc"],
     local_include_dirs: ["common/src/jni/main/include"],
+
+    target: {
+        android: {
+            runtime_libs: ["libandroidio"],
+        },
+        not_windows: {
+            runtime_libs: ["libandroidio"],
+        },
+    },
 }
 
 // Platform conscrypt crypto JNI library
@@ -429,6 +444,10 @@ cc_library_shared {
             enabled: false,
         },
     },
+    apex_available: [
+        "com.android.conscrypt",
+        "test_com.android.conscrypt",
+    ],
 }
 
 // Unbundled Conscrypt jar for use by signapk tool
@@ -557,12 +576,27 @@ sdk {
     ],
 }
 
-// Host tools SDK exposed by the Conscrypt module.
-sdk {
-    name: "conscrypt-module-host-sdk",
+// Host tools exported by the Conscrypt module.
+module_exports {
+    name: "conscrypt-module-host-exports",
     host_supported: true,
     device_supported: false,
     java_libs: [
         "conscrypt-unbundled",
+    ],
+}
+
+// Test libraries exposed by the Conscrypt module.
+module_exports {
+    name: "conscrypt-module-test-exports",
+    java_libs: [
+        // For use by robolectric.
+        "conscrypt",
+        // For use by art tests
+        "conscrypt-testdex",
+    ],
+    java_tests: [
+        // For use by CTS
+        "conscrypt-tests",
     ],
 }

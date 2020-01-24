@@ -24,6 +24,8 @@ import static com.android.org.conscrypt.SSLUtils.EngineStates.STATE_NEW;
 import static com.android.org.conscrypt.SSLUtils.EngineStates.STATE_READY;
 import static com.android.org.conscrypt.SSLUtils.EngineStates.STATE_READY_HANDSHAKE_CUT_THROUGH;
 
+import com.android.org.conscrypt.ExternalSession.Provider;
+import com.android.org.conscrypt.NativeRef.SSL_SESSION;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -46,8 +48,6 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import com.android.org.conscrypt.ExternalSession.Provider;
-import com.android.org.conscrypt.NativeRef.SSL_SESSION;
 
 /**
  * Implementation of the class OpenSSLSocketImpl based on OpenSSL.
@@ -691,6 +691,14 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         return activeSession;
     }
 
+    // After handshake has started, provide active session otherwise a null session,
+    // for code which needs to read session attributes without triggering the handshake.
+    private ConscryptSession provideAfterHandshakeSession() {
+        return (state < STATE_HANDSHAKE_STARTED) ? SSLNullSession.getNullSession()
+                                                 : provideSession();
+    }
+
+    // If handshake is in progress, provide active session otherwise a null session.
     private ConscryptSession provideHandshakeSession() {
         synchronized (ssl) {
             return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY ? activeSession
@@ -763,7 +771,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      *
      * @param useSessionTickets True to enable session tickets
      */
-    @dalvik.annotation.compat.
+    @android.compat.annotation.
     UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives = "Use {@link android.net.ssl.SSLSockets#setUseSessionTickets}.")
     @Override
@@ -778,7 +786,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      *
      * @param hostname the desired SNI hostname, or null to disable
      */
-    @dalvik.annotation.compat.
+    @android.compat.annotation.
     UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives = "Use {@link javax.net.ssl.SSLParameters#setServerNames}.")
     @Override
@@ -1126,7 +1134,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     public final String getApplicationProtocol() {
-        return provideSession().getApplicationProtocol();
+        return provideAfterHandshakeSession().getApplicationProtocol();
     }
 
     @Override

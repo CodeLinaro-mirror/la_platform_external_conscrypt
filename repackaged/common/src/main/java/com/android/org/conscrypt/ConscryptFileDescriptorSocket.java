@@ -45,9 +45,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLSession;
-import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
-import javax.security.auth.x500.X500Principal;
 
 /**
  * Implementation of the class OpenSSLSocketImpl based on OpenSSL.
@@ -60,8 +58,7 @@ import javax.security.auth.x500.X500Principal;
  * </ul>
  */
 class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
-        implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.AliasChooser,
-                   SSLParametersImpl.PSKCallbacks {
+        implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.PSKCallbacks {
     private static final boolean DBG_STATE = false;
 
     // @GuardedBy("ssl");
@@ -771,7 +768,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      *
      * @param useSessionTickets True to enable session tickets
      */
-    @android.compat.annotation.UnsupportedAppUsage(
+    @android.compat.annotation.
+    UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives = "Use {@link android.net.ssl.SSLSockets#setUseSessionTickets}.")
     @Override
     public final void
@@ -785,7 +783,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      *
      * @param hostname the desired SNI hostname, or null to disable
      */
-    @android.compat.annotation.UnsupportedAppUsage(
+    @android.compat.annotation.
+    UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives = "Use {@link javax.net.ssl.SSLParameters#setServerNames}.")
     @Override
     public final void
@@ -1154,17 +1153,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     public final void setSSLParameters(SSLParameters p) {
         super.setSSLParameters(p);
         Platform.setSSLParameters(p, sslParameters, this);
-    }
-
-    @Override
-    public final String chooseServerAlias(X509KeyManager keyManager, String keyType) {
-        return keyManager.chooseServerAlias(keyType, null, this);
-    }
-
-    @Override
-    public final String chooseClientAlias(X509KeyManager keyManager, X500Principal[] issuers,
-            String[] keyTypes) {
-        return keyManager.chooseClientAlias(keyTypes, issuers, this);
     }
 
     @Override

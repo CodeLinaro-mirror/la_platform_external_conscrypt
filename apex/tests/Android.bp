@@ -15,7 +15,6 @@
 android_test {
     name: "MtsConscryptTestCases",
     platform_apis: true,
-    defaults: ["cts_defaults"],
     static_libs: [
         "conscrypt-support",
         "conscrypt-tests",

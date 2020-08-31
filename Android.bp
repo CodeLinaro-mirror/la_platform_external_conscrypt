@@ -69,6 +69,8 @@ cc_defaults {
         "common/src/jni/main/cpp/conscrypt/trace.cc",
     ],
 
+    header_libs: ["jni_headers"],
+
     local_include_dirs: [
         "common/src/jni/main/include",
     ],
@@ -83,6 +85,8 @@ cc_defaults {
     local_include_dirs: [
         "common/src/jni/unbundled/include",
     ],
+
+    header_libs: ["jni_headers"],
 
     shared_libs: [
         "liblog",
@@ -203,7 +207,9 @@ java_library {
     min_sdk_version: "29",
 
     installable: true,
-    hostdex: true,
+    // Hostdex is only for ART testing on host: ART build file has its
+    // own hostdex support for conscrypt.
+    hostdex: false,
 
     srcs: [
         ":conscrypt_java_files",
@@ -218,17 +224,10 @@ java_library {
     system_modules: "art-module-intra-core-api-stubs-system-modules",
     patch_module: "java.base",
 
-    // Workaround for b/124476339: libjavacrypto is required for both APEX and
-    // hostdex builds, but adding a top-level required property results in
-    // it being installed to /system on Android.
-    // TODO(b/124476339): move required back to a top level property
     target: {
         // boringssl_self_test needed in both /system/bin and /apex/com.android.conscrypt/bin
         android: {
             required: ["boringssl_self_test"],
-        },
-        hostdex: {
-            required: ["libjavacrypto"],
         },
     },
 
@@ -264,11 +263,19 @@ filegroup {
 // The API specification .txt files managed by this only contain the additional
 // classes/members that are in the platform API but which are not in the public
 // API.
+//
+// Note that this entire API surface is considered stable in the sense described in
+// libcore/mmodules/core_platform_api/Android.bp.
 java_sdk_library {
     name: "conscrypt.module.platform.api",
     visibility: [
         "//external/wycheproof",
         "//libcore:__subpackages__",
+        // Visibility for prebuilt conscrypt-module-sdk from the prebuilt of
+        // this module.
+        // TODO(b/155921753): Restrict this when prebuilts are in their proper
+        // locations.
+        "//prebuilts:__subpackages__",
     ],
     srcs: [
         ":conscrypt_java_files",
@@ -277,30 +284,13 @@ java_sdk_library {
     api_only: true,
     droiddoc_options: [
         "--hide-annotation libcore.api.Hide",
-        "--show-single-annotation libcore.api.CorePlatformApi",
+        "--show-single-annotation libcore.api.CorePlatformApi\\(status=libcore.api.CorePlatformApi.Status.STABLE\\)",
         "--skip-annotation-instance-methods=false",
     ],
     hostdex: true,
 
     sdk_version: "none",
-    system_modules: "art-module-platform-api-stubs-system-modules",
-}
-
-// A guaranteed unstripped version of conscrypt.
-// The build system may or may not strip the conscrypt jar, but this one will
-// not be stripped. See b/24535627.
-java_library {
-    name: "conscrypt-testdex",
-    installable: true,
-
-    static_libs: ["conscrypt"],
-    dex_preopt: {
-        enabled: false,
-    },
-
-    sdk_version: "core_platform",
-
-    required: ["libjavacrypto"],
+    system_modules: "legacy-art-module-platform-api-stubs-system-modules",
 }
 
 // Referenced implicitly from conscrypt.module.public.api.
@@ -325,6 +315,11 @@ java_sdk_library {
     visibility: [
         "//frameworks/base",
         "//libcore",
+        // Visibility for prebuilt art-module-host-exports from the prebuilt of
+        // this module.
+        // TODO(b/155921753): Restrict this when prebuilts are in their proper
+        // locations.
+        "//prebuilts:__subpackages__",
     ],
     srcs: [
         ":conscrypt_public_api_files",
@@ -369,6 +364,11 @@ java_sdk_library {
     visibility: [
         "//external/okhttp",
         "//libcore:__subpackages__",
+        // Visibility for prebuilt conscrypt-module-sdk from the prebuilt of
+        // this module.
+        // TODO(b/155921753): Restrict this when prebuilts are in their proper
+        // locations.
+        "//prebuilts:__subpackages__",
     ],
     srcs: [
         ":conscrypt_java_files",
@@ -399,6 +399,7 @@ cc_defaults {
     ],
 
     srcs: ["common/src/jni/main/cpp/**/*.cc"],
+    header_libs: ["jni_headers"],
     local_include_dirs: ["common/src/jni/main/include"],
 }
 
@@ -567,19 +568,38 @@ module_exports {
     java_libs: [
         "conscrypt-unbundled",
     ],
+    native_shared_libs: [
+        "libconscrypt_openjdk_jni",
+    ],
 }
 
 // Test libraries exposed by the Conscrypt module.
 module_exports {
     name: "conscrypt-module-test-exports",
-    java_libs: [
-        // For use by robolectric.
-        "conscrypt",
-        // For use by art tests
-        "conscrypt-testdex",
-    ],
-    java_tests: [
-        // For use by CTS
-        "conscrypt-tests",
-    ],
+    host_supported: true,
+    target: {
+        android: {
+            java_libs: [
+                // For use by robolectric and ART tests.
+                "conscrypt",
+            ],
+            java_tests: [
+                // For use by CTS
+                "conscrypt-tests",
+            ],
+            // TODO: Remove this when we resolve b/151303681.
+            native_shared_libs: [
+                "libjavacrypto",
+            ],
+        },
+        darwin: {
+            enabled: false,
+        },
+        // For use by ART tests on host.
+        not_windows: {
+            native_shared_libs: [
+                "libjavacrypto",
+            ],
+        },
+    },
 }

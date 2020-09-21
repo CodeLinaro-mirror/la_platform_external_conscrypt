@@ -1481,6 +1481,8 @@ public class SSLSocketVersionCompatibilityTest {
                 underlying, c.host.getHostName(), c.port, true);
         final byte[] data = new byte[1024 * 64];
 
+        // TODO(b/161347005): Re-enable once engine-based socket interruption works correctly.
+        assumeFalse(isConscryptEngineSocket(wrapping));
         Future<Void> clientFuture = runAsync(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -1494,13 +1496,6 @@ public class SSLSocketVersionCompatibilityTest {
                     fail();
                 } catch (SocketException expected) {
                     assertTrue(expected.getMessage().contains("closed"));
-                } catch (SSLException e) {
-                    // TODO(b/159199048): Workaround for known TreeHugger
-                    // cf_x86 presubmit failure which doesn't occur on non-TreeHugger
-                    // cf_x86 or real devices.
-                    if (!e.getMessage().contains("Engine bytesProduced")) {
-                        throw e;
-                    }
                 }
                 return null;
             }

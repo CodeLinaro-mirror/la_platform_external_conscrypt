@@ -282,6 +282,7 @@ java_library {
     visibility: [
         "//art/build",
         "//external/robolectric-shadows",
+        "//frameworks/layoutlib",
     ],
     static_libs: [
         "conscrypt",
@@ -524,6 +525,11 @@ java_library_host {
     ],
     javacflags: ["-XDignore.symbol.file"],
     java_version: "1.8",
+    target: {
+        windows: {
+            enabled: true,
+        },
+    },
 }
 
 // Static unbundled Conscrypt crypto JNI library

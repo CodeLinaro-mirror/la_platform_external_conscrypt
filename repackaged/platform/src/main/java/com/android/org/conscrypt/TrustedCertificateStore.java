@@ -114,12 +114,9 @@ public class TrustedCertificateStore implements ConscryptCertStore {
         }
 
         static boolean shouldUseApex(File updatableDir) {
-            try {
-                Object sdkVersion = getSdkVersion();
-                if ((sdkVersion != null) && ((int) sdkVersion < 34))
-                    return false;
-            } catch (ClassNotFoundException e) {
-            }
+            Object sdkVersion = getSdkVersion();
+            if ((sdkVersion == null) || ((int) sdkVersion < 34))
+                return false;
             if ((System.getProperty("system.certs.enabled") != null)
                     && (System.getProperty("system.certs.enabled")).equals("true"))
                 return false;
@@ -128,10 +125,15 @@ public class TrustedCertificateStore implements ConscryptCertStore {
             return false;
         }
 
-        static Object getSdkVersion() throws ClassNotFoundException {
-            OptionalMethod getSdkVersion =
-                    new OptionalMethod(Class.forName("dalvik.system.VMRuntime"), "getSdkVersion");
-            return getSdkVersion.invokeStatic();
+        static Object getSdkVersion() {
+            try {
+                OptionalMethod getSdkVersion =
+                        new OptionalMethod(Class.forName("dalvik.system.VMRuntime"),
+                                            "getSdkVersion");
+                return getSdkVersion.invokeStatic();
+            } catch (ClassNotFoundException e) {
+                return null;
+            }
         }
     }
 

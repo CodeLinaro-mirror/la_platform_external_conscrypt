@@ -18,6 +18,7 @@
 package com.android.org.conscrypt;
 
 import com.android.org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
+import com.android.org.conscrypt.Platform;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -44,7 +45,6 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.ShortBufferException;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
-import com.android.org.conscrypt.Platform;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL.
@@ -378,6 +378,8 @@ public final class NativeCrypto {
 
     static native byte[] CMAC_Final(NativeRef.CMAC_CTX ctx);
 
+    static native void CMAC_Reset(NativeRef.CMAC_CTX ctx);
+
     // --- HMAC functions ------------------------------------------------------
 
     static native long HMAC_CTX_new();
@@ -392,6 +394,8 @@ public final class NativeCrypto {
 
     static native byte[] HMAC_Final(NativeRef.HMAC_CTX ctx);
 
+    static native void HMAC_Reset(NativeRef.HMAC_CTX ctx);
+
     // --- HPKE functions ------------------------------------------------------
     static native byte[] EVP_HPKE_CTX_export(
             NativeRef.EVP_HPKE_CTX ctx, byte[] exporterCtx, int length);
@@ -399,19 +403,36 @@ public final class NativeCrypto {
     static native void EVP_HPKE_CTX_free(long ctx);
 
     static native byte[] EVP_HPKE_CTX_open(
-            NativeRef.EVP_HPKE_CTX ctx, byte[] ciphertext, byte[] aad);
+            NativeRef.EVP_HPKE_CTX ctx, byte[] ciphertext, byte[] aad) throws BadPaddingException;
 
     static native byte[] EVP_HPKE_CTX_seal(
             NativeRef.EVP_HPKE_CTX ctx, byte[] plaintext, byte[] aad);
 
-    static native Object EVP_HPKE_CTX_setup_recipient(
+    static native Object EVP_HPKE_CTX_setup_base_mode_recipient(
             int kem, int kdf, int aead, byte[] privateKey, byte[] enc, byte[] info);
 
-    static native Object[] EVP_HPKE_CTX_setup_sender(
+    static Object EVP_HPKE_CTX_setup_base_mode_recipient(
+            HpkeSuite suite, byte[] privateKey, byte[] enc, byte[] info) {
+        return EVP_HPKE_CTX_setup_base_mode_recipient(suite.getKem().getId(),
+                suite.getKdf().getId(), suite.getAead().getId(), privateKey, enc, info);
+    }
+
+    static native Object[] EVP_HPKE_CTX_setup_base_mode_sender(
             int kem, int kdf, int aead, byte[] publicKey, byte[] info);
 
-    static native Object[] EVP_HPKE_CTX_setup_sender_with_seed_for_testing(
+    static Object[] EVP_HPKE_CTX_setup_base_mode_sender(
+            HpkeSuite suite, byte[] publicKey, byte[] info) {
+        return EVP_HPKE_CTX_setup_base_mode_sender(suite.getKem().getId(), suite.getKdf().getId(),
+                suite.getAead().getId(), publicKey, info);
+    }
+    static native Object[] EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
             int kem, int kdf, int aead, byte[] publicKey, byte[] info, byte[] seed);
+
+    static Object[] EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
+            HpkeSuite suite, byte[] publicKey, byte[] info, byte[] seed) {
+        return EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(suite.getKem().getId(),
+                suite.getKdf().getId(), suite.getAead().getId(), publicKey, info, seed);
+    }
 
     // --- RAND ----------------------------------------------------------------
 
@@ -636,12 +657,6 @@ public final class NativeCrypto {
 
     @android.compat.annotation.UnsupportedAppUsage
     static native int X509_supported_extension(long x509ExtensionRef);
-
-    // --- ASN1_TIME -----------------------------------------------------------
-
-    @android.compat.annotation.UnsupportedAppUsage
-    static native void ASN1_TIME_to_Calendar(long asn1TimeCtx, Calendar cal)
-            throws ParsingException;
 
     // --- ASN1 Encoding -------------------------------------------------------
 
@@ -1054,6 +1069,7 @@ public final class NativeCrypto {
             SUPPORTED_PROTOCOL_TLSV1_2,
             SUPPORTED_PROTOCOL_TLSV1_3,
     };
+
     public static String[] getDefaultProtocols() {
         if (Platform.isTlsV1Deprecated()) {
           return DEFAULT_PROTOCOLS.clone();

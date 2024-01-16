@@ -43,7 +43,6 @@ import javax.crypto.ShortBufferException;
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
 import org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
-import org.conscrypt.Platform;
 
 /**
  * Provides the Java side of our JNI glue for OpenSSL.
@@ -388,19 +387,39 @@ public final class NativeCrypto {
     static native void EVP_HPKE_CTX_free(long ctx);
 
     static native byte[] EVP_HPKE_CTX_open(
-            NativeRef.EVP_HPKE_CTX ctx, byte[] ciphertext, byte[] aad);
+            NativeRef.EVP_HPKE_CTX ctx, byte[] ciphertext, byte[] aad) throws BadPaddingException;
 
     static native byte[] EVP_HPKE_CTX_seal(
             NativeRef.EVP_HPKE_CTX ctx, byte[] plaintext, byte[] aad);
 
-    static native Object EVP_HPKE_CTX_setup_recipient(
+    static native Object EVP_HPKE_CTX_setup_base_mode_recipient(
             int kem, int kdf, int aead, byte[] privateKey, byte[] enc, byte[] info);
 
-    static native Object[] EVP_HPKE_CTX_setup_sender(
+    static Object EVP_HPKE_CTX_setup_base_mode_recipient(
+            HpkeSuite suite, byte[] privateKey, byte[] enc, byte[] info) {
+        return EVP_HPKE_CTX_setup_base_mode_recipient(
+                suite.getKem().getId(), suite.getKdf().getId(), suite.getAead().getId(),
+                privateKey, enc, info);
+    }
+
+    static native Object[] EVP_HPKE_CTX_setup_base_mode_sender(
             int kem, int kdf, int aead, byte[] publicKey, byte[] info);
 
-    static native Object[] EVP_HPKE_CTX_setup_sender_with_seed_for_testing(
+    static Object[] EVP_HPKE_CTX_setup_base_mode_sender(
+            HpkeSuite suite, byte[] publicKey, byte[] info) {
+        return EVP_HPKE_CTX_setup_base_mode_sender(
+                suite.getKem().getId(), suite.getKdf().getId(), suite.getAead().getId(),
+                publicKey, info);
+    }
+    static native Object[] EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
             int kem, int kdf, int aead, byte[] publicKey, byte[] info, byte[] seed);
+
+    static Object[] EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
+            HpkeSuite suite, byte[] publicKey, byte[] info, byte[] seed) {
+        return EVP_HPKE_CTX_setup_base_mode_sender_with_seed_for_testing(
+                suite.getKem().getId(), suite.getKdf().getId(), suite.getAead().getId(),
+                publicKey, info, seed);
+    }
 
     // --- RAND ----------------------------------------------------------------
 
@@ -993,16 +1012,24 @@ public final class NativeCrypto {
 
     static native void set_SSL_psk_server_callback_enabled(long ssl, NativeSsl ssl_holder, boolean enabled);
 
+    private static final String[] ENABLED_PROTOCOLS_TLSV1 = Platform.isTlsV1Deprecated()
+            ? new String[0]
+            : new String[] {
+                DEPRECATED_PROTOCOL_TLSV1,
+                DEPRECATED_PROTOCOL_TLSV1_1,
+            };
+
+
     /** Protocols to enable by default when "TLSv1.3" is requested. */
-    static final String[] TLSV13_PROTOCOLS = new String[] {
+    static final String[] TLSV13_PROTOCOLS = ArrayUtils.concatValues(
+            ENABLED_PROTOCOLS_TLSV1,
             SUPPORTED_PROTOCOL_TLSV1_2,
-            SUPPORTED_PROTOCOL_TLSV1_3,
-    };
+            SUPPORTED_PROTOCOL_TLSV1_3);
 
     /** Protocols to enable by default when "TLSv1.2" is requested. */
-    static final String[] TLSV12_PROTOCOLS = new String[] {
-            SUPPORTED_PROTOCOL_TLSV1_2,
-    };
+    static final String[] TLSV12_PROTOCOLS = ArrayUtils.concatValues(
+            ENABLED_PROTOCOLS_TLSV1,
+            SUPPORTED_PROTOCOL_TLSV1_2);
 
     /** Protocols to enable by default when "TLSv1.1" is requested. */
     static final String[] TLSV11_PROTOCOLS = new String[] {

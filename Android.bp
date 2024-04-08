@@ -145,6 +145,7 @@ cc_library_host_shared {
     name: "libconscrypt_openjdk_jni",
     visibility: [
         "//build/make/tools/signapk",
+        "//cts/hostsidetests/library", // from CtsUseNativeLibraryBuildPackage
         "//tools/apksig",
         "//vendor:__subpackages__",
     ],
@@ -238,8 +239,8 @@ java_library {
         "com.android.conscrypt",
         "test_com.android.conscrypt",
     ],
-    // Conscrypt should support Q
-    min_sdk_version: "29",
+    // Conscrypt should support R
+    min_sdk_version: "30",
 
     installable: true,
     // Hostdex is only for ART testing on host: ART build file has its
@@ -296,7 +297,7 @@ java_library {
 
 // Referenced implicitly from conscrypt.module.platform.api.
 filegroup {
-    name: "conscrypt.module.platform.api.api.public.latest",
+    name: "conscrypt.module.platform.api.api.combined.public.latest",
     srcs: [
         "api/platform/last-api.txt",
     ],
@@ -304,7 +305,7 @@ filegroup {
 
 // Referenced implicitly from conscrypt.module.platform.api.
 filegroup {
-    name: "conscrypt.module.platform.api-removed.api.public.latest",
+    name: "conscrypt.module.platform.api-removed.api.combined.public.latest",
     srcs: [
         "api/platform/last-removed.txt",
     ],
@@ -426,7 +427,7 @@ java_sdk_library {
 
 // Referenced implicitly from conscrypt.module.intra.core.api.
 filegroup {
-    name: "conscrypt.module.intra.core.api.api.public.latest",
+    name: "conscrypt.module.intra.core.api.api.combined.public.latest",
     srcs: [
         "api/intra/last-api.txt",
     ],
@@ -434,7 +435,7 @@ filegroup {
 
 // Referenced implicitly from conscrypt.module.intra.core.api.
 filegroup {
-    name: "conscrypt.module.intra.core.api-removed.api.public.latest",
+    name: "conscrypt.module.intra.core.api-removed.api.combined.public.latest",
     srcs: [
         "api/intra/last-removed.txt",
     ],
@@ -535,7 +536,7 @@ cc_library_shared {
         "com.android.conscrypt",
         "test_com.android.conscrypt",
     ],
-    min_sdk_version: "29",
+    min_sdk_version: "30",
 }
 
 // Unbundled Conscrypt jar for use by signapk and apksigner tool

@@ -84,6 +84,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
+import org.conscrypt.NativeCrypto;
 
 /**
  * Platform-specific methods for OpenJDK.
@@ -94,9 +95,12 @@ import javax.net.ssl.X509TrustManager;
 final public class Platform {
     private static final int JAVA_VERSION = javaVersion0();
     private static final Method GET_CURVE_NAME_METHOD;
+    static boolean DEPRECATED_TLS_V1 = true;
+    static boolean ENABLED_TLS_V1 = false;
+    private static boolean FILTERED_TLS_V1 = true;
 
     static {
-
+        NativeCrypto.setTlsV1DeprecationStatus(DEPRECATED_TLS_V1, ENABLED_TLS_V1);
         Method getCurveNameMethod = null;
         try {
             getCurveNameMethod = ECParameterSpec.class.getDeclaredMethod("getCurveName");
@@ -109,7 +113,12 @@ final public class Platform {
 
     private Platform() {}
 
-    static void setup() {}
+    public static void setup(boolean deprecatedTlsV1, boolean enabledTlsV1) {
+        DEPRECATED_TLS_V1 = deprecatedTlsV1;
+        ENABLED_TLS_V1 = enabledTlsV1;
+        FILTERED_TLS_V1 = !enabledTlsV1;
+        NativeCrypto.setTlsV1DeprecationStatus(DEPRECATED_TLS_V1, ENABLED_TLS_V1);
+    }
 
 
     /**
@@ -124,7 +133,7 @@ final public class Platform {
         prefix = new File(prefix).getName();
         IOException suppressed = null;
         for (int i = 0; i < 10000; i++) {
-            String tempName = String.format(Locale.US, "%s%d%04d%s", prefix, time, i, suffix);
+            String tempName = String.format(Locale.ROOT, "%s%d%04d%s", prefix, time, i, suffix);
             File tempFile = new File(directory, tempName);
             if (!tempName.equals(tempFile.getName())) {
                 // The given prefix or suffix contains path separators.
@@ -593,8 +602,22 @@ final public class Platform {
             return originalHostName;
         } catch (InvocationTargetException e) {
             throw new RuntimeException("Failed to get originalHostName", e);
-        } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException ignore) {
+        } catch (ClassNotFoundException | IllegalAccessException | NoSuchMethodException ignored) {
             // passthrough and return addr.getHostAddress()
+        } catch (Exception maybeIgnored) {
+            if (!maybeIgnored.getClass().getSimpleName().equals("InaccessibleObjectException")) {
+                throw new RuntimeException("Failed to get originalHostName", maybeIgnored);
+            }
+            // Java versions which prevent reflection to get the original hostname.
+            // Ugly workaround is parse it from toString(), which uses holder.hostname rather
+            // than holder.originalHostName.  But in Java versions up to 21 at least and in the way
+            // used by Conscrypt, hostname always equals originalHostname.
+            String representation = addr.toString();
+            int slash = representation.indexOf('/');
+            if (slash != -1) {
+                return representation.substring(0, slash);
+            }
+            // Give up and return the IP
         }
 
         return addr.getHostAddress();
@@ -632,7 +655,7 @@ final public class Platform {
         }
 
         String property = Security.getProperty("conscrypt.ct.enable");
-        if (property == null || !Boolean.valueOf(property.toLowerCase())) {
+        if (property == null || !Boolean.parseBoolean(property.toLowerCase(Locale.ROOT))) {
             return false;
         }
 
@@ -646,15 +669,14 @@ final public class Platform {
         for (String part : parts) {
             property = Security.getProperty(propertyName + ".*");
             if (property != null) {
-                enable = Boolean.valueOf(property.toLowerCase());
+                enable = Boolean.parseBoolean(property.toLowerCase(Locale.ROOT));
             }
-
             propertyName.append(".").append(part);
         }
 
         property = Security.getProperty(propertyName.toString());
         if (property != null) {
-            enable = Boolean.valueOf(property.toLowerCase());
+            enable = Boolean.parseBoolean(property.toLowerCase(Locale.ROOT));
         }
         return enable;
     }
@@ -826,14 +848,14 @@ final public class Platform {
     }
 
     public static boolean isTlsV1Deprecated() {
-        return true;
+        return DEPRECATED_TLS_V1;
     }
 
     public static boolean isTlsV1Filtered() {
-        return false;
+        return FILTERED_TLS_V1;
     }
 
     public static boolean isTlsV1Supported() {
-        return false;
+        return ENABLED_TLS_V1;
     }
 }

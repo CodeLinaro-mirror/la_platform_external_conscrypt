@@ -570,7 +570,8 @@ final public class Platform {
 
     public static boolean isTlsV1Filtered() {
         Object targetSdkVersion = getTargetSdkVersion();
-        if ((targetSdkVersion != null) && ((int) targetSdkVersion > 34))
+        if ((targetSdkVersion != null) && ((int) targetSdkVersion > 35)
+               && ((int) targetSdkVersion < 100))
             return false;
         return FILTERED_TLS_V1;
     }

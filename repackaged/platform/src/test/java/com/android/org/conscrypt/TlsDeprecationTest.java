@@ -45,8 +45,8 @@ public class TlsDeprecationTest {
     public final TestRule switchTargetSdkVersionRule = SwitchTargetSdkVersionRule.getInstance();
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(35)
-    public void test_SSLSocket_SSLv3Unsupported_35() throws Exception {
+    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    public void test_SSLSocket_SSLv3Unsupported_36() throws Exception {
         assertFalse(TestUtils.isTlsV1Filtered());
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client =
@@ -58,6 +58,7 @@ public class TlsDeprecationTest {
     @Test
     @SwitchTargetSdkVersionRule.TargetSdkVersion(34)
     public void test_SSLSocket_SSLv3Unsupported_34() throws Exception {
+        assertTrue(TestUtils.isTlsV1Filtered());
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client =
                 (SSLSocket) context.clientContext.getSocketFactory().createSocket();
@@ -70,6 +71,7 @@ public class TlsDeprecationTest {
     @Test
     @SwitchTargetSdkVersionRule.TargetSdkVersion(34)
     public void test_TLSv1Filtered_34() throws Exception {
+        assertTrue(TestUtils.isTlsV1Filtered());
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client =
                 (SSLSocket) context.clientContext.getSocketFactory().createSocket();
@@ -79,8 +81,19 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(35)
-    public void test_TLSv1Filtered_35() throws Exception {
+    @SwitchTargetSdkVersionRule.TargetSdkVersion(34)
+    public void test_TLSv1FilteredEmpty_34() throws Exception {
+        assertTrue(TestUtils.isTlsV1Filtered());
+        TestSSLContext context = TestSSLContext.create();
+        final SSLSocket client =
+                (SSLSocket) context.clientContext.getSocketFactory().createSocket();
+        client.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1",});
+        assertEquals(0, client.getEnabledProtocols().length);
+    }
+
+    @Test
+    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    public void test_TLSv1Filtered_36() throws Exception {
         assertFalse(TestUtils.isTlsV1Filtered());
         TestSSLContext context = TestSSLContext.create();
         final SSLSocket client =
@@ -99,8 +112,8 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(35)
-    public void testInitializeDeprecatedEnabled_35() {
+    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    public void testInitializeDeprecatedEnabled_36() {
         Provider conscryptProvider = TestUtils.getConscryptProvider(true, true);
         assertTrue(TestUtils.isTlsV1Deprecated());
         assertFalse(TestUtils.isTlsV1Filtered());
@@ -117,8 +130,8 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(35)
-    public void testInitializeDeprecatedDisabled_35() {
+    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    public void testInitializeDeprecatedDisabled_36() {
         Provider conscryptProvider = TestUtils.getConscryptProvider(true, false);
         assertTrue(TestUtils.isTlsV1Deprecated());
         assertFalse(TestUtils.isTlsV1Filtered());
@@ -135,8 +148,8 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(35)
-    public void testInitializeUndeprecatedEnabled_35() {
+    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    public void testInitializeUndeprecatedEnabled_36() {
         Provider conscryptProvider = TestUtils.getConscryptProvider(false, true);
         assertFalse(TestUtils.isTlsV1Deprecated());
         assertFalse(TestUtils.isTlsV1Filtered());
@@ -150,8 +163,8 @@ public class TlsDeprecationTest {
     }
 
     @Test
-    @SwitchTargetSdkVersionRule.TargetSdkVersion(35)
-    public void testInitializeUndeprecatedDisabled_35() {
+    @SwitchTargetSdkVersionRule.TargetSdkVersion(36)
+    public void testInitializeUndeprecatedDisabled_36() {
         assertThrows(RuntimeException.class, () -> TestUtils.getConscryptProvider(false, false));
     }
 }

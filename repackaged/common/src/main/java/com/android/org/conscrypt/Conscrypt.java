@@ -172,7 +172,7 @@ public final class Conscrypt {
         private boolean provideTrustManager = Platform.provideTrustManagerByDefault();
         private String defaultTlsProtocol = NativeCrypto.SUPPORTED_PROTOCOL_TLSV1_3;
         private boolean deprecatedTlsV1 = true;
-        private boolean enabledTlsV1 = true;
+        private boolean enabledTlsV1 = false;
 
         private ProviderBuilder() {}
 

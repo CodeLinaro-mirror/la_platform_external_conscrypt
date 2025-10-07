@@ -29,7 +29,7 @@ import javax.net.ssl.X509TrustManager;
  * An application's network security configuration.
  *
  * <p>{@link #getConfigForHostname(String)} provides a means to obtain network security
- * configuration to be used for communicating with a specific hostname.</p>
+ * configuration to be used for communicating with a specific hostname.
  *
  * @hide
  */
@@ -39,46 +39,43 @@ public final class ApplicationConfig {
 
     private Set<Pair<Domain, NetworkSecurityConfig>> mConfigs;
     private NetworkSecurityConfig mDefaultConfig;
+    private NetworkSecurityConfig mLocalhostConfig;
     private X509TrustManager mTrustManager;
 
     private ConfigSource mConfigSource;
     private boolean mInitialized;
     private final Object mLock = new Object();
 
-    /**
-     * @hide
-     */
     public ApplicationConfig(ConfigSource configSource) {
         mConfigSource = configSource;
         mInitialized = false;
     }
 
-    /**
-     * @hide
-     */
     public boolean hasPerDomainConfigs() {
         ensureInitialized();
         return mConfigs != null && !mConfigs.isEmpty();
     }
 
     /**
-     * Get the {@link NetworkSecurityConfig} corresponding to the provided hostname.
-     * When matching the most specific matching domain rule will be used, if no match exists
-     * then the default configuration will be returned.
+     * Get the {@link NetworkSecurityConfig} corresponding to the provided hostname. The most
+     * specific matching domain rule will be used. If no match exists and the hostname is considered
+     * to be localhost (according to {@link Domain#isLocalhost()}), the localhost configuration will
+     * be returned. Otherwise, the default configuration will be returned.
      *
-     * {@code NetworkSecurityConfig} objects returned by this method can be safely cached for
-     * {@code hostname}. Subsequent calls with the same hostname will always return the same
-     * {@code NetworkSecurityConfig}.
+     * <p>{@code NetworkSecurityConfig} objects returned by this method can be safely cached for
+     * {@code hostname}. Subsequent calls with the same hostname will always return the same {@code
+     * NetworkSecurityConfig}.
      *
-     * @return {@link NetworkSecurityConfig} to be used to determine
-     * the network security configuration for connections to {@code hostname}.
+     * @return {@link NetworkSecurityConfig} to be used to determine the network security
+     *     configuration for connections to {@code hostname}.
      */
     public NetworkSecurityConfig getConfigForHostname(String hostname) {
         ensureInitialized();
-        if (hostname == null || hostname.isEmpty() || mConfigs == null) {
+        if (hostname == null || hostname.isEmpty()
+                || (mConfigs == null && mLocalhostConfig == null)) {
             return mDefaultConfig;
         }
-        if (hostname.charAt(0) ==  '.') {
+        if (hostname.charAt(0) == '.') {
             throw new IllegalArgumentException("hostname must not begin with a .");
         }
         // Domains are case insensitive.
@@ -90,29 +87,33 @@ public final class ApplicationConfig {
         }
         // Find the Domain -> NetworkSecurityConfig entry with the most specific matching
         // Domain entry for hostname.
-        // TODO: Use a smarter data structure for the lookup.
-        Pair<Domain, NetworkSecurityConfig> bestMatch = null;
-        for (Pair<Domain, NetworkSecurityConfig> entry : mConfigs) {
-            Domain domain = entry.first;
-            NetworkSecurityConfig config = entry.second;
-            // Check for an exact match.
-            if (domain.hostname.equals(hostname)) {
-                return config;
-            }
-            // Otherwise check if the Domain includes sub-domains and that the hostname is a
-            // sub-domain of the Domain.
-            if (domain.subdomainsIncluded
-                    && hostname.endsWith(domain.hostname)
-                    && hostname.charAt(hostname.length() - domain.hostname.length() - 1) == '.') {
-                if (bestMatch == null) {
-                    bestMatch = entry;
-                } else if (domain.hostname.length() > bestMatch.first.hostname.length()) {
-                    bestMatch = entry;
+        if (mConfigs != null) {
+            Pair<Domain, NetworkSecurityConfig> bestMatch = null;
+            for (Pair<Domain, NetworkSecurityConfig> entry : mConfigs) {
+                Domain domain = entry.first;
+                NetworkSecurityConfig config = entry.second;
+                // Check for an exact match.
+                if (domain.hostname.equals(hostname)) {
+                    return config;
+                }
+                // Otherwise check if the Domain includes sub-domains and that the hostname is a
+                // sub-domain of the Domain.
+                if (domain.subdomainsIncluded && hostname.endsWith(domain.hostname)
+                        && hostname.charAt(hostname.length() - domain.hostname.length() - 1)
+                                == '.') {
+                    if (bestMatch == null) {
+                        bestMatch = entry;
+                    } else if (domain.hostname.length() > bestMatch.first.hostname.length()) {
+                        bestMatch = entry;
+                    }
                 }
             }
+            if (bestMatch != null) {
+                return bestMatch.second;
+            }
         }
-        if (bestMatch != null) {
-            return bestMatch.second;
+        if (mLocalhostConfig != null && Domain.isLocalhost(hostname)) {
+            return mLocalhostConfig;
         }
         // If no match was found use the default configuration.
         return mDefaultConfig;
@@ -129,8 +130,8 @@ public final class ApplicationConfig {
 
     /**
      * Returns {@code true} if cleartext traffic is permitted for this application, which is the
-     * case only if all configurations permit cleartext traffic. For finer-grained policy use
-     * {@link #isCleartextTrafficPermitted(String)}.
+     * case only if all configurations permit cleartext traffic. For finer-grained policy use {@link
+     * #isCleartextTrafficPermitted(String)}.
      */
     public boolean isCleartextTrafficPermitted() {
         ensureInitialized();
@@ -168,7 +169,7 @@ public final class ApplicationConfig {
     }
 
     public void handleTrustStorageUpdate() {
-        synchronized(mLock) {
+        synchronized (mLock) {
             // If the config is uninitialized then there is no work to be done to handle an update,
             // avoid needlessly parsing configs.
             if (!mInitialized) {
@@ -188,12 +189,13 @@ public final class ApplicationConfig {
     }
 
     private void ensureInitialized() {
-        synchronized(mLock) {
+        synchronized (mLock) {
             if (mInitialized) {
                 return;
             }
             mConfigs = mConfigSource.getPerDomainConfigs();
             mDefaultConfig = mConfigSource.getDefaultConfig();
+            mLocalhostConfig = mConfigSource.getLocalhostConfig();
             mConfigSource = null;
             mTrustManager = new RootTrustManager(this);
             mInitialized = true;

@@ -30,10 +30,12 @@ class KeyStoreConfigSource implements ConfigSource {
 
     public KeyStoreConfigSource(KeyStore ks) {
         mConfig = new NetworkSecurityConfig.Builder()
-                .addCertificatesEntryRef(
-                        // Use the KeyStore and do not override pins (of which there are none).
-                        new CertificatesEntryRef(new KeyStoreCertificateSource(ks), false, false))
-                .build();
+                          .addCertificatesEntryRef(
+                                  // Use the KeyStore and do not override pins (of which there are
+                                  // none).
+                                  new CertificatesEntryRef(
+                                          new KeyStoreCertificateSource(ks), false, false))
+                          .build();
     }
 
     @Override
@@ -45,5 +47,9 @@ class KeyStoreConfigSource implements ConfigSource {
     public NetworkSecurityConfig getDefaultConfig() {
         return mConfig;
     }
-}
 
+    @Override
+    public NetworkSecurityConfig getLocalhostConfig() {
+        return null;
+    }
+}

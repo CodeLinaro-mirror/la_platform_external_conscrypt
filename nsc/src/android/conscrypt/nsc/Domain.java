@@ -17,19 +17,18 @@
 package android.conscrypt.nsc;
 
 import android.annotation.Nullable;
+import android.net.InetAddresses;
 
+import java.net.InetAddress;
 import java.util.Locale;
+import java.util.Set;
 
 /** @hide */
 public final class Domain {
-    /**
-     * Lower case hostname for this domain rule.
-     */
+    /** Lower case hostname for this domain rule. */
     public final String hostname;
 
-    /**
-     * Whether this domain includes subdomains.
-     */
+    /** Whether this domain includes subdomains. */
     public final boolean subdomainsIncluded;
 
     public Domain(String hostname, boolean subdomainsIncluded) {
@@ -54,7 +53,34 @@ public final class Domain {
             return false;
         }
         Domain otherDomain = (Domain) other;
-        return otherDomain.subdomainsIncluded == this.subdomainsIncluded &&
-                otherDomain.hostname.equals(this.hostname);
+        return otherDomain.subdomainsIncluded == this.subdomainsIncluded
+                && otherDomain.hostname.equals(this.hostname);
+    }
+
+    public boolean isLocalhost() {
+        return isLocalhost(this.hostname);
+    }
+
+    /**
+     * Whether the hostname is considered to be localhost or not.
+     */
+    public static boolean isLocalhost(String hostname) {
+        if (LOCALHOSTS.contains(hostname)) {
+            return true;
+        }
+        // RFC 2732: To use a literal IPv6 address in a URL, the literal address should be enclosed
+        // in "[" and "]" characters.
+        if (hostname.charAt(0) == '[' && hostname.charAt(hostname.length() - 1) == ']') {
+            hostname = hostname.substring(1, hostname.length() - 1);
+        }
+        // parseNumericAddress raises an exception if the address is not valid. We could use
+        // isNumericAddress beforehand to avoid the exception, but this would imply parsing the
+        // address twice. Simply ignore IllegalArgumentException.
+        try {
+            InetAddress addr = InetAddresses.parseNumericAddress(hostname);
+            return addr.isLoopbackAddress();
+        } catch (IllegalArgumentException e) {
+        }
+        return false;
     }
 }

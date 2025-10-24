@@ -1,6 +1,6 @@
 /* GENERATED SOURCE. DO NOT MODIFY. */
 /*
- * Copyright (C) 2025 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,25 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package dalvik.annotation.optimization;
 
-package com.android.org.conscrypt.securityconfig;
+import com.android.org.conscrypt.Internal;
 
-import static org.junit.Assert.assertFalse;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
+ * Stub annotation for CriticalNative methods that only work on Android.
  * @hide This class is not part of the Android public SDK API
  */
-@RunWith(JUnit4.class)
-public class XmlConfigTests {
-    @Test
-    public void testEmptyConfigFile() {
-        ApplicationConfig appConfig = new ApplicationConfig();
-        // Check defaults.
-        assertFalse(appConfig.hasPerDomainConfigs());
-        assertFalse(appConfig.isCleartextTrafficPermitted());
-    }
-}
+@Internal
+@Retention(RetentionPolicy.SOURCE)
+@Target({ElementType.METHOD})
+@Documented
+public @interface CriticalNative {}

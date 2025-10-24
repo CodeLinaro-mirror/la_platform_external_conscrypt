@@ -43,9 +43,8 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
     private static final byte[] PKCS7_MARKER = new byte[] {
             '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' ', 'P', 'K', 'C', 'S', '7'
     };
-    private static final byte[] PEM_MARKER = new byte[] {
-            '-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' '
-    };
+    private static final byte[] PEM_MARKER =
+            new byte[] {'-', '-', '-', '-', '-', 'B', 'E', 'G', 'I', 'N', ' '};
     private static final int DASH = 45; // Value of '-'
     private static final int VALUE_0 = 0x30; // Value of '0'
 
@@ -155,7 +154,7 @@ public class OpenSSLX509CertificateFactory extends CertificateFactorySpi {
                         if (Arrays.equals(buffer, PEM_MARKER)) {
                             return fromX509PemInputStream(pbis);
                         }
-                        pbis.read();
+                        int unused = pbis.read();
                     }
                 }
                 throw new ParsingException("No certificate found");

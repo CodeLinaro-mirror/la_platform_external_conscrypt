@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package android.net.ssl;
+package org.conscrypt;
 
-import android.annotation.FlaggedApi;
-import android.annotation.Nullable;
-
-import javax.net.ssl.SSLException;
+import org.conscrypt.metrics.CertificateTransparencyVerificationReason;
 
 /**
- * Exception thrown when the ECH (Encrypted Client Hello) data is empty or invalid.
+ * A policy provided by the platform to decide on the behaviour of TrustManagerImpl.
+ *
+ * See the platform-specific implementations in PlatformNetworkSecurityPolicy.
  */
-@FlaggedApi(com.android.org.conscrypt.net.flags.Flags.FLAG_ENCRYPTED_CLIENT_HELLO_PLATFORM)
-public class InvalidEchDataException extends SSLException {
-    public InvalidEchDataException(@Nullable String message) {
-        super(message);
-    }
+@Internal
+public interface NetworkSecurityPolicy {
+    boolean isCertificateTransparencyVerificationRequired(String hostname);
+
+    CertificateTransparencyVerificationReason getCertificateTransparencyVerificationReason(
+            String hostname);
 }

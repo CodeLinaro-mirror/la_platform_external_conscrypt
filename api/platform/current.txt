@@ -6,7 +6,13 @@ package android.net.ssl {
     method @NonNull public byte[] toBytes();
   }
 
-  @FlaggedApi("com.android.org.conscrypt.net.flags.encrypted_client_hello_platform") public class InvalidEchDataException extends java.lang.Exception {
+  @FlaggedApi("com.android.org.conscrypt.net.flags.encrypted_client_hello_platform") public class EchConfigMismatchException extends javax.net.ssl.SSLException {
+    ctor public EchConfigMismatchException(@Nullable String, @Nullable android.net.ssl.EchConfigList);
+    method @Nullable public android.net.ssl.EchConfigList getRetryConfigList();
+    method public boolean hasRetryConfigList();
+  }
+
+  @FlaggedApi("com.android.org.conscrypt.net.flags.encrypted_client_hello_platform") public class InvalidEchDataException extends javax.net.ssl.SSLException {
     ctor public InvalidEchDataException(@Nullable String);
   }
 
@@ -46,6 +52,10 @@ package com.android.org.conscrypt {
   }
 
   public interface ConscryptCertStore {
+  }
+
+  @FlaggedApi("com.android.org.conscrypt.net.flags.certificate_transparency_default_enabled") public class ConscryptNetworkSecurityPolicy {
+    ctor @FlaggedApi("com.android.org.conscrypt.net.flags.certificate_transparency_default_enabled") public ConscryptNetworkSecurityPolicy(libcore.net.NetworkSecurityPolicy);
   }
 
   @FlaggedApi("com.android.org.conscrypt.net.flags.conscryptx509trustmanager") public interface ConscryptX509TrustManager {
@@ -99,9 +109,11 @@ package com.android.org.conscrypt {
     method public void checkServerTrusted(java.security.cert.X509Certificate[], String, java.net.Socket) throws java.security.cert.CertificateException;
     method public void checkServerTrusted(java.security.cert.X509Certificate[], String, javax.net.ssl.SSLEngine) throws java.security.cert.CertificateException;
     method public java.security.cert.X509Certificate[] getAcceptedIssuers();
+    method @FlaggedApi("com.android.org.conscrypt.net.flags.certificate_transparency_default_enabled") public com.android.org.conscrypt.ConscryptNetworkSecurityPolicy getNetworkSecurityPolicy();
     method public java.util.List<java.security.cert.X509Certificate> getTrustedChainForServer(java.security.cert.X509Certificate[], String, java.net.Socket) throws java.security.cert.CertificateException;
     method public java.util.List<java.security.cert.X509Certificate> getTrustedChainForServer(java.security.cert.X509Certificate[], String, javax.net.ssl.SSLEngine) throws java.security.cert.CertificateException;
     method public void handleTrustStorageUpdate();
+    method @FlaggedApi("com.android.org.conscrypt.net.flags.certificate_transparency_default_enabled") public void setNetworkSecurityPolicy(com.android.org.conscrypt.ConscryptNetworkSecurityPolicy);
   }
 
   public final class TrustedCertificateIndex {

@@ -392,6 +392,9 @@ java_library {
         "android.net.ssl",
         "com.android.org.conscrypt",
     ],
+    lint: {
+        baseline_filename: "lint-baseline-conscrypt.xml",
+    },
 }
 
 // Java library for use on host, e.g. by robolectric.
@@ -408,30 +411,6 @@ java_library {
     ],
     sdk_version: "none",
     system_modules: "none",
-}
-
-// Referenced implicitly from conscrypt.module.platform.api.
-filegroup {
-    name: "conscrypt.module.platform.api.api.combined.public.latest",
-    srcs: [
-        "api/platform/last-api.txt",
-    ],
-}
-
-// Referenced implicitly from conscrypt.module.platform.api.
-filegroup {
-    name: "conscrypt.module.platform.api-removed.api.combined.public.latest",
-    srcs: [
-        "api/platform/last-removed.txt",
-    ],
-}
-
-// Referenced implicitly from conscrypt.module.platform.api.
-filegroup {
-    name: "conscrypt.module.platform.api-incompatibilities.api.public.latest",
-    srcs: [
-        "api/platform/last-incompatibilities.txt",
-    ],
 }
 
 // A library containing the core platform API stubs of the Conscrypt module.
@@ -652,7 +631,7 @@ java_sdk_library {
     // TODO(b/397646538): replace this with "37". We don't want to ship this module
     // to 36 or lower devices, because the NSConfig and NSCPolicy classes would clash
     // with the ones with the same name in the platform.
-    min_sdk_version: "36",
+    min_sdk_version: "current",
     sdk_version: "module_current",
 
     srcs: [
@@ -685,6 +664,9 @@ java_sdk_library {
     aconfig_declarations: [
         "networksecurity-aconfig-flags",
     ],
+    lint: {
+        baseline_filename: "lint-baseline-framework-conscrypt-nsc.impl.xml",
+    },
 }
 
 platform_compat_config {

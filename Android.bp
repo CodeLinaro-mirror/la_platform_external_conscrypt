@@ -258,6 +258,7 @@ java_aconfig_library {
     visibility: [
         "//cts/tests/tests/networksecurityconfig:__subpackages__",
         "//frameworks/base",
+        "//frameworks/base/packages/NetworkSecurityConfig/tests",
     ],
 }
 
@@ -429,6 +430,7 @@ java_sdk_library {
     visibility: [
         "//build/soong/java/core-libraries",
         "//external/wycheproof",
+        "//frameworks/base/packages/NetworkSecurityConfig/tests",
         // Visibility for prebuilt conscrypt-module-sdk from the prebuilt of
         // this module.
         // TODO(b/155921753): Restrict this when prebuilts are in their proper
@@ -622,6 +624,13 @@ java_sdk_library {
 java_sdk_library {
     name: "framework-conscrypt-nsc",
     defaults: ["framework-module-defaults"],
+    impl_library_visibility: [
+        "//frameworks/base/packages/NetworkSecurityConfig/tests",
+    ],
+
+    // TODO(b/397646538): replace this with "37". We don't want to ship this module
+    // to 36 or lower devices, because the NSConfig and NSCPolicy classes would clash
+    // with the ones with the same name in the platform.
     min_sdk_version: "36",
     sdk_version: "module_current",
 
@@ -629,25 +638,26 @@ java_sdk_library {
         "nsc/src/**/*.java",
     ],
     libs: [
-        "android.sdk.flags-aconfig-java",
-        "android.security.flags-aconfig-java-export",
         "app-compat-annotations",
         "framework-annotations-lib",
+        "framework-connectivity.stubs",
         "androidx.annotation_annotation",
         "unsupportedappusage",
         "conscrypt.module.platform.api.stubs",
         "modules-xml-utils",
         "networksecurity-aconfig-flags-lib",
     ],
+    static_libs: [
+        "android.security.flags-aconfig-java-export",
+    ],
 
     api_dir: "api/nsc",
-    unsafe_ignore_missing_latest_api: true,
 
     apex_available: [
         "com.android.conscrypt",
     ],
     permitted_packages: [
-        "android.conscrypt.nsc",
+        "android.security",
         "com.android.org.conscrypt.net.flags",
     ],
     aconfig_declarations: [
@@ -809,6 +819,7 @@ java_library {
         "bouncycastle-bcpkix-unbundled",
         "bouncycastle-ocsp-unbundled",
     ],
+    java_version: "1.8",
 }
 
 filegroup {

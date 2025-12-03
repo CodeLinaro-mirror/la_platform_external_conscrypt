@@ -51,11 +51,13 @@
 #include <openssl/slhdsa.h>
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
+#include <openssl/xwing.h>
 
 #include <limits>
 #include <optional>
 #include <type_traits>
 #include <vector>
+
 #include "jni.h"
 
 using conscrypt::AppData;
@@ -124,6 +126,16 @@ static SSL_CIPHER* to_SSL_CIPHER(JNIEnv* env, jlong ssl_cipher_address, bool thr
         conscrypt::jniutil::throwNullPointerException(env, "ssl_cipher == null");
     }
     return ssl_cipher;
+}
+
+static SSL_ECH_KEYS* to_SSL_ECH_KEYS(JNIEnv* env, jlong ssl_ech_keys_address, bool throwIfNull) {
+    SSL_ECH_KEYS* ssl_ech_keys =
+            reinterpret_cast<SSL_ECH_KEYS*>(static_cast<uintptr_t>(ssl_ech_keys_address));
+    if ((ssl_ech_keys == nullptr) && throwIfNull) {
+        JNI_TRACE("ssl_ech_keys == null");
+        conscrypt::jniutil::throwNullPointerException(env, "ssl_ech_keys == null");
+    }
+    return ssl_ech_keys;
 }
 
 template <typename T>
@@ -821,14 +833,6 @@ void init_engine_globals() {
 #define THROW_SSLEXCEPTION (-2)
 #define THROW_SOCKETTIMEOUTEXCEPTION (-3)
 #define THROWN_EXCEPTION (-4)
-
-/**
- * Initialization phase for every OpenSSL job: Loads the Error strings, the
- * crypto algorithms and reset the OpenSSL library
- */
-static void NativeCrypto_clinit(JNIEnv*, jclass) {
-    CRYPTO_library_init();
-}
 
 /**
  * private static native int EVP_PKEY_new_RSA(byte[] n, byte[] e, byte[] d, byte[] p, byte[] q);
@@ -3038,6 +3042,50 @@ static void NativeCrypto_ED25519_keypair(JNIEnv* env, jclass, jbyteArray outPubl
     JNI_TRACE("ED25519_keypair(%p, %p) => success", outPublicArray, outPrivateArray);
 }
 
+static jbyteArray NativeCrypto_XWING_public_key_from_seed(JNIEnv* env, jclass,
+                                                          jbyteArray privateKeySeed) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+
+    ScopedByteArrayRO seedArray(env, privateKeySeed);
+    if (seedArray.get() == nullptr) {
+        JNI_TRACE("NativeCrypto_XWING_public_key_from_seed => privateKeySeed == null");
+        return nullptr;
+    }
+
+    if (seedArray.size() != XWING_PRIVATE_KEY_BYTES) {
+        conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
+                                           "privateKeySeed length != 32");
+        return nullptr;
+    }
+
+    CBS cbs;
+    CBS_init(&cbs, reinterpret_cast<const uint8_t*>(seedArray.get()), seedArray.size());
+    XWING_private_key privateKey;
+    if (!XWING_parse_private_key(&privateKey, &cbs)) {
+        JNI_TRACE("XWING_parse_private_key failed");
+        conscrypt::jniutil::throwIllegalArgumentException(env, "XWING_parse_private_key failed");
+        return nullptr;
+    }
+
+    ScopedLocalRef<jbyteArray> publicKeyRef(
+            env, env->NewByteArray(static_cast<jsize>(XWING_PUBLIC_KEY_BYTES)));
+    if (publicKeyRef.get() == nullptr) {
+        return nullptr;
+    }
+    ScopedByteArrayRW publicKeyArray(env, publicKeyRef.get());
+    if (publicKeyArray.get() == nullptr) {
+        return nullptr;
+    }
+
+    if (!XWING_public_from_private(reinterpret_cast<uint8_t*>(publicKeyArray.get()), &privateKey)) {
+        JNI_TRACE("XWING_public_from_private failed");
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "XWING_public_from_private");
+        return nullptr;
+    }
+
+    return publicKeyRef.release();
+}
+
 static jlong NativeCrypto_EVP_MD_CTX_create(JNIEnv* env, jclass) {
     CHECK_ERROR_QUEUE_ON_RETURN;
     JNI_TRACE_MD("EVP_MD_CTX_create()");
@@ -4647,6 +4695,8 @@ const EVP_HPKE_KDF* getHpkeKdf(JNIEnv* env, jint kdfValue) {
 const EVP_HPKE_KEM* getHpkeKem(JNIEnv* env, jint kemValue) {
     if (kemValue == EVP_HPKE_DHKEM_X25519_HKDF_SHA256) {
         return EVP_hpke_x25519_hkdf_sha256();
+    } else if (kemValue == EVP_HPKE_XWING) {
+        return EVP_hpke_xwing();
     } else {
         conscrypt::jniutil::throwException(env, "java/lang/IllegalArgumentException",
                                            "KEM is not supported");
@@ -7784,7 +7834,7 @@ static int sslSelect(JNIEnv* env, int type, jobject fdObject, AppData* appData,
         if (fds[1].revents & POLLIN) {
             char token;
             do {
-                (void)read(appData->fdsEmergency[0], &token, 1);
+                CONSCRYPT_UNUSED int n = read(appData->fdsEmergency[0], &token, 1);
             } while (errno == EINTR);
         }
     }
@@ -7815,7 +7865,7 @@ static void sslNotify(AppData* appData) {
     char token = '*';
     do {
         errno = 0;
-        (void)write(appData->fdsEmergency[1], &token, 1);
+        CONSCRYPT_UNUSED int n = write(appData->fdsEmergency[1], &token, 1);
     } while (errno == EINTR);
     errno = errnoBackup;
 #endif
@@ -11772,6 +11822,191 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
     return reinterpret_cast<uintptr_t>(SSL_get1_session(ssl));
 }
 
+static void NativeCrypto_SSL_set_enable_ech_grease(JNIEnv* env, jclass, jlong ssl_address,
+                                                   CONSCRYPT_UNUSED jobject ssl_holder,
+                                                   jboolean enable) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_enable_ech_grease(%d)", ssl, enable);
+    if (ssl == nullptr) {
+        return;
+    }
+    SSL_set_enable_ech_grease(ssl, enable ? 1 : 0);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set_enable_ech_grease(%d) => success", ssl, enable);
+}
+
+static jboolean NativeCrypto_SSL_set1_ech_config_list(JNIEnv* env, jclass, jlong ssl_address,
+                                                      CONSCRYPT_UNUSED jobject ssl_holder,
+                                                      jbyteArray configJavaBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p)", ssl, configJavaBytes);
+    if (ssl == nullptr) {
+        return JNI_FALSE;
+    }
+    ScopedByteArrayRO configBytes(env, configJavaBytes);
+    if (configBytes.get() == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, ech config");
+        ERR_clear_error();
+        JNI_TRACE("NativeCrypto_SSL_set1_ech_config_list => could not read config bytes");
+        return JNI_FALSE;
+    }
+    int ret = SSL_set1_ech_config_list(ssl, reinterpret_cast<const uint8_t*>(configBytes.get()),
+                                       configBytes.size());
+    if (!ret) {
+        conscrypt::jniutil::throwSSLExceptionStr(env, "Error parsing ECH config");
+        ERR_clear_error();
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p) => threw exception", ssl,
+                  configJavaBytes);
+        return JNI_FALSE;
+    }
+
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_set1_ech_config_list(%p) => %d", ssl, configJavaBytes, ret);
+    return ret;
+}
+
+static jstring NativeCrypto_SSL_get0_ech_name_override(JNIEnv* env, jclass, jlong ssl_address,
+                                                       CONSCRYPT_UNUSED jobject ssl_holder) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_name_override()", ssl);
+    if (ssl == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_name_override() => nullptr", ssl);
+        return nullptr;
+    }
+    const char* ech_name_override;
+    size_t ech_name_override_len;
+    SSL_get0_ech_name_override(ssl, &ech_name_override, &ech_name_override_len);
+    if (ech_name_override_len > 0) {
+        jstring name = env->NewStringUTF(ech_name_override);
+        return name;
+    }
+    return nullptr;
+}
+
+static jbyteArray NativeCrypto_SSL_get0_ech_retry_configs(JNIEnv* env, jclass, jlong ssl_address,
+                                                          CONSCRYPT_UNUSED jobject ssl_holder) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_retry_configs()", ssl);
+    if (ssl == nullptr) {
+        return nullptr;
+    }
+    const uint8_t* retry_configs;
+    size_t retry_configs_len;
+    SSL_get0_ech_retry_configs(ssl, &retry_configs, &retry_configs_len);
+    if (retry_configs_len <= 0) {
+        return nullptr;
+    }
+    jbyteArray result = env->NewByteArray(static_cast<jsize>(retry_configs_len));
+    if (result == nullptr) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_retry_configs() => creating byte array failed",
+                  ssl);
+        return nullptr;
+    }
+    env->SetByteArrayRegion(result, 0, static_cast<jsize>(retry_configs_len),
+                            reinterpret_cast<const jbyte*>(retry_configs));
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_get0_ech_retry_configs() => %p", ssl, result);
+    return result;
+}
+
+static jlong NativeCrypto_SSL_ECH_KEYS_new(JNIEnv* env, jclass) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    bssl::UniquePtr<SSL_ECH_KEYS> sslEchKeys(SSL_ECH_KEYS_new());
+    if (sslEchKeys.get() == nullptr) {
+        conscrypt::jniutil::throwExceptionFromBoringSSLError(env, "SSL_ECH_KEYS_new");
+        return 0;
+    }
+    JNI_TRACE("NativeCrypto_SSL_ECH_KEYS_new => %p", sslEchKeys.get());
+    return (jlong)sslEchKeys.release();
+}
+
+static void NativeCrypto_SSL_ECH_KEYS_up_ref(JNIEnv* env, jclass, jlong ssl_ech_keys_address) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL_ECH_KEYS* ssl_ech_keys = to_SSL_ECH_KEYS(env, ssl_ech_keys_address, true);
+    JNI_TRACE("ssl_ech_keys=%p NativeCrypto_SSL_ECH_KEYS_up_ref", ssl_ech_keys);
+    if (ssl_ech_keys == nullptr) {
+        return;
+    }
+    SSL_ECH_KEYS_up_ref(ssl_ech_keys);
+}
+
+static void NativeCrypto_SSL_ECH_KEYS_free(JNIEnv* env, jclass, jlong ssl_ech_keys_address) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL_ECH_KEYS* ssl_ech_keys = to_SSL_ECH_KEYS(env, ssl_ech_keys_address, true);
+    JNI_TRACE("ssl_ech_keys=%p NativeCrypto_SSL_ECH_KEYS_free", ssl_ech_keys);
+    if (ssl_ech_keys == nullptr) {
+        return;
+    }
+    SSL_ECH_KEYS_free(ssl_ech_keys);
+}
+
+static jboolean NativeCrypto_SSL_ech_accepted(JNIEnv* env, jclass, jlong ssl_address,
+                                              CONSCRYPT_UNUSED jobject ssl_holder) {
+    JNI_TRACE("NativeCrypto_SSL_ech_accepted");
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL* ssl = to_SSL(env, ssl_address, true);
+    if (ssl == nullptr) {
+        return JNI_FALSE;
+    }
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted", ssl);
+
+    if (!SSL_ech_accepted(ssl)) {
+        JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => threw exception", ssl);
+        return JNI_FALSE;
+    }
+
+    JNI_TRACE("ssl=%p NativeCrypto_SSL_ech_accepted => %d", ssl, JNI_TRUE);
+    return JNI_TRUE;
+}
+
+static jboolean NativeCrypto_SSL_CTX_ech_enable_server(JNIEnv* env, jclass, jlong ssl_ctx_address,
+                                                       CONSCRYPT_UNUSED jobject holder,
+                                                       jbyteArray keyJavaBytes,
+                                                       jbyteArray configJavaBytes) {
+    CHECK_ERROR_QUEUE_ON_RETURN;
+    SSL_CTX* ssl_ctx = to_SSL_CTX(env, ssl_ctx_address, true);
+    JNI_TRACE("NativeCrypto_SSL_CTX_ech_enable_server(keyJavaBytes=%p, configJavaBytes=%p)",
+              keyJavaBytes, configJavaBytes);
+    ScopedByteArrayRO keyBytes(env, keyJavaBytes);
+    if (keyBytes.get() == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, key bytes");
+        ERR_clear_error();
+        JNI_TRACE(
+                "NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
+                "could not read key bytes");
+        return JNI_FALSE;
+    }
+    ScopedByteArrayRO configBytes(env, configJavaBytes);
+    if (configBytes.get() == nullptr) {
+        conscrypt::jniutil::throwNullPointerException(env, "Null pointer, config bytes");
+        ERR_clear_error();
+        JNI_TRACE(
+                "NativeCrypto_SSL_CTX_ech_enable_server => threw exception: "
+                "could not read config bytes");
+        return JNI_FALSE;
+    }
+    const uint8_t* ech_key = reinterpret_cast<const uint8_t*>(keyBytes.get());
+    size_t ech_key_size = keyBytes.size();
+    const uint8_t* ech_config = reinterpret_cast<const uint8_t*>(configBytes.get());
+    size_t ech_config_size = configBytes.size();
+    bssl::UniquePtr<SSL_ECH_KEYS> keys(SSL_ECH_KEYS_new());
+    bssl::ScopedEVP_HPKE_KEY key;
+    if (!keys ||
+        !EVP_HPKE_KEY_init(key.get(), EVP_hpke_x25519_hkdf_sha256(), ech_key, ech_key_size) ||
+        !SSL_ECH_KEYS_add(keys.get(), /*is_retry_config=*/1, ech_config, ech_config_size,
+                          key.get()) ||
+        !SSL_CTX_set1_ech_keys(ssl_ctx, keys.get())) {
+        conscrypt::jniutil::throwInvalidKeyException(env, "Key config error");
+        ERR_clear_error();
+        JNI_TRACE(
+                "NativeCrypto_SSL_CTX_ech_enable_server: "
+                "Error setting server's ECHConfig and private key\n");
+        return JNI_FALSE;
+    }
+    return JNI_TRUE;
+}
+
 // TESTING METHODS END
 
 #define CONSCRYPT_NATIVE_METHOD(functionName, signature)             \
@@ -11802,7 +12037,6 @@ static jlong NativeCrypto_SSL_get1_session(JNIEnv* env, jclass, jlong ssl_addres
 #define REF_SSL "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/NativeSsl;"
 #define REF_SSL_CTX "L" TO_STRING(JNI_JARJAR_PREFIX) "org/conscrypt/AbstractSessionContext;"
 static JNINativeMethod sNativeCryptoMethods[] = {
-        CONSCRYPT_NATIVE_METHOD(clinit, "()V"),
         CONSCRYPT_NATIVE_METHOD(CMAC_CTX_new, "()J"),
         CONSCRYPT_NATIVE_METHOD(CMAC_CTX_free, "(J)V"),
         CONSCRYPT_NATIVE_METHOD(CMAC_Init, "(" REF_CMAC_CTX "[B)V"),
@@ -11873,6 +12107,7 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(X25519, "([B[B[B)Z"),
         CONSCRYPT_NATIVE_METHOD(X25519_keypair, "([B[B)V"),
         CONSCRYPT_NATIVE_METHOD(ED25519_keypair, "([B[B)V"),
+        CONSCRYPT_NATIVE_METHOD(XWING_public_key_from_seed, "([B)[B"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_create, "()J"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_cleanup, "(" REF_EVP_MD_CTX ")V"),
         CONSCRYPT_NATIVE_METHOD(EVP_MD_CTX_destroy, "(J)V"),
@@ -12128,6 +12363,17 @@ static JNINativeMethod sNativeCryptoMethods[] = {
         CONSCRYPT_NATIVE_METHOD(usesBoringSsl_FIPS_mode, "()Z"),
         CONSCRYPT_NATIVE_METHOD(Scrypt_generate_key, "([B[BIIII)[B"),
         CONSCRYPT_NATIVE_METHOD(SSL_CTX_set_spake_credential, "([B[B[B[BZIJ" REF_SSL_CTX ")V"),
+
+        // FOR ECH TESTING
+        CONSCRYPT_NATIVE_METHOD(SSL_set_enable_ech_grease, "(J" REF_SSL "Z)V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_set1_ech_config_list, "(J" REF_SSL "[B)Z"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get0_ech_name_override, "(J" REF_SSL ")Ljava/lang/String;"),
+        CONSCRYPT_NATIVE_METHOD(SSL_get0_ech_retry_configs, "(J" REF_SSL ")[B"),
+        CONSCRYPT_NATIVE_METHOD(SSL_ECH_KEYS_new, "()J"),
+        CONSCRYPT_NATIVE_METHOD(SSL_ECH_KEYS_up_ref, "(J)V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_ECH_KEYS_free, "(J)V"),
+        CONSCRYPT_NATIVE_METHOD(SSL_ech_accepted, "(J" REF_SSL ")Z"),
+        CONSCRYPT_NATIVE_METHOD(SSL_CTX_ech_enable_server, "(J" REF_SSL_CTX "[B[B)Z"),
 
         // Used for testing only.
         CONSCRYPT_NATIVE_METHOD(BIO_read, "(J[B)I"),

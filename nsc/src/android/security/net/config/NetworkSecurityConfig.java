@@ -22,6 +22,7 @@ import static android.security.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_OPPO
 import static android.security.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_REQUIRED;
 
 import static com.android.org.conscrypt.net.flags.Flags.certificateTransparencyDefaultEnabled;
+import static com.android.org.conscrypt.net.flags.Flags.encryptedClientHelloPlatform;
 
 import android.app.compat.CompatChanges;
 import android.compat.annotation.ChangeId;
@@ -30,6 +31,8 @@ import android.content.pm.ApplicationInfo;
 import android.os.Build;
 import android.util.ArrayMap;
 import android.util.ArraySet;
+
+import com.android.org.conscrypt.ConscryptNetworkSecurityPolicy;
 
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -59,12 +62,12 @@ public final class NetworkSecurityConfig {
     static final long DEFAULT_ENABLE_CERTIFICATE_TRANSPARENCY = 407952621L;
 
     /**
-     * Corresponds to the IntDef defined in
-     * {@link android.security.NetworkSecurityPolicy.DomainEncryptionMode}.
-     *
-     * @hide
+     * Enable Encrypted Client Hello by default on all TLS connections in Network Security Config.
+     * Apps can still opt-out via their Network Security Config.
      */
-    public static final int DEFAULT_DOMAIN_ENCRYPTION_MODE = DOMAIN_ENCRYPTION_MODE_OPPORTUNISTIC;
+    @ChangeId
+    @EnabledAfter(targetSdkVersion = Build.VERSION_CODES.BAKLAVA)
+    static final long ENABLE_DEFAULT_ENCRYPTED_CLIENT_HELLO = 419020719L;
 
     private static final AtomicReference<Boolean>
             sCertificateTransparencyVerificationRequiredDefault = new AtomicReference<>();
@@ -164,6 +167,13 @@ public final class NetworkSecurityConfig {
         }
     }
 
+    /** Sets the NetworkSecurityPolicy for the associated TrustManager */
+    void setNetworkSecurityPolicy(libcore.net.NetworkSecurityPolicy policy) {
+        if (certificateTransparencyDefaultEnabled()) {
+            getTrustManager().setNetworkSecurityPolicy(new ConscryptNetworkSecurityPolicy(policy));
+        }
+    }
+
     /** @hide */
     public TrustAnchor findTrustAnchorBySubjectAndPublicKey(X509Certificate cert) {
         for (CertificatesEntryRef ref : mCertificatesEntryRefs) {
@@ -217,6 +227,19 @@ public final class NetworkSecurityConfig {
                                           : certificateTransparencyDefaultEnabled()
                                 && CompatChanges.isChangeEnabled(
                                         DEFAULT_ENABLE_CERTIFICATE_TRANSPARENCY));
+    }
+
+    /**
+     * Returns the default domain encryption mode. The value depends on the platform version and on
+     * the app target sdk level.
+     *
+     * @hide
+     */
+    static int defaultDomainEncryptionMode() {
+        return (CompatChanges.isChangeEnabled(ENABLE_DEFAULT_ENCRYPTED_CLIENT_HELLO)
+                        && encryptedClientHelloPlatform())
+                ? DOMAIN_ENCRYPTION_MODE_OPPORTUNISTIC
+                : DOMAIN_ENCRYPTION_MODE_DISABLED;
     }
 
     /**
@@ -286,7 +309,7 @@ public final class NetworkSecurityConfig {
         private boolean mCertificateTransparencyVerificationRequired =
                 certificateTransparencyVerificationRequiredDefault();
         private boolean mCertificateTransparencyVerificationRequiredSet = false;
-        private int mDomainEncryptionMode = DEFAULT_DOMAIN_ENCRYPTION_MODE;
+        private int mDomainEncryptionMode = defaultDomainEncryptionMode();
         private boolean mDomainEncryptionModeSet = false;
         private Builder mParentBuilder;
 
@@ -425,7 +448,7 @@ public final class NetworkSecurityConfig {
                 case "required" -> DOMAIN_ENCRYPTION_MODE_REQUIRED;
                 case "enabled" -> DOMAIN_ENCRYPTION_MODE_ENABLED;
                 case "opportunistic" -> DOMAIN_ENCRYPTION_MODE_OPPORTUNISTIC;
-                default -> DEFAULT_DOMAIN_ENCRYPTION_MODE;
+                default -> defaultDomainEncryptionMode();
             };
             mDomainEncryptionModeSet = true;
             return this;
@@ -444,7 +467,7 @@ public final class NetworkSecurityConfig {
                 return mParentBuilder.getDomainEncryptionMode();
             }
 
-            return DEFAULT_DOMAIN_ENCRYPTION_MODE;
+            return defaultDomainEncryptionMode();
         }
 
         public NetworkSecurityConfig build() {

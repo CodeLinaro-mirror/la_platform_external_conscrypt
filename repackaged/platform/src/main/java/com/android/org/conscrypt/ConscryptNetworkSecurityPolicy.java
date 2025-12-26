@@ -57,8 +57,11 @@ public class ConscryptNetworkSecurityPolicy implements NetworkSecurityPolicy {
             String hostname) {
         if (Platform.isSdkGreater(33)
                 && com.android.libcore.Flags.networkSecurityPolicyReasonCtEnabledApi()) {
-            return plaformCtReasonToConscryptReason(
+            CertificateTransparencyVerificationReason reason = plaformCtReasonToConscryptReason(
                     policy.getCertificateTransparencyVerificationReason(hostname));
+            if (reason != CertificateTransparencyVerificationReason.UNKNOWN) {
+                return reason;
+            }
         }
         if (policy.isCertificateTransparencyVerificationRequired("")) {
             return CertificateTransparencyVerificationReason.APP_OPT_IN;
@@ -80,6 +83,29 @@ public class ConscryptNetworkSecurityPolicy implements NetworkSecurityPolicy {
                 return CertificateTransparencyVerificationReason.SDK_TARGET_DEFAULT_ENABLED;
             default:
                 return CertificateTransparencyVerificationReason.UNKNOWN;
+        }
+    }
+
+    @Override
+    public DomainEncryptionMode getDomainEncryptionMode(String hostname) {
+        if (com.android.org.conscrypt.net.flags.Flags.encryptedClientHelloPlatform()) {
+            return platformToConscryptEncryptionMode(policy.getDomainEncryptionMode(hostname));
+        }
+        return DomainEncryptionMode.UNKNOWN;
+    }
+
+    private static DomainEncryptionMode platformToConscryptEncryptionMode(int platformMode) {
+        switch (platformMode) {
+            case libcore.net.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_DISABLED:
+                return DomainEncryptionMode.DISABLED;
+            case libcore.net.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_OPPORTUNISTIC:
+                return DomainEncryptionMode.OPPORTUNISTIC;
+            case libcore.net.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_ENABLED:
+                return DomainEncryptionMode.ENABLED;
+            case libcore.net.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_REQUIRED:
+                return DomainEncryptionMode.REQUIRED;
+            default:
+                return DomainEncryptionMode.UNKNOWN;
         }
     }
 }

@@ -24,6 +24,10 @@ import static org.junit.Assert.fail;
 import com.android.org.conscrypt.TestUtils;
 
 import libcore.junit.util.EnableDeprecatedBouncyCastleAlgorithmsRule;
+import libcore.test.annotation.NonCts;
+import libcore.test.annotation.NonMts;
+import libcore.test.reasons.NonCtsReasons;
+import libcore.test.reasons.NonMtsReasons;
 
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -83,6 +87,8 @@ public class KeyPairGeneratorTest {
     // END Android-Added: Allow access to deprecated BC algorithms.
 
     @Test
+    @NonCts(reason = NonCtsReasons.INTERNAL_APIS)
+    @NonMts(reason = NonMtsReasons.API_LEVEL_GATING)
     public void test_getInstance() throws Exception {
         ServiceTester.test("KeyPairGenerator")
             // Do not test AndroidKeyStore Provider. It does not accept vanilla public keys for
@@ -262,6 +268,12 @@ public class KeyPairGeneratorTest {
             // KeyPairGenerator with algorithm "ML-DSA-65". But the key it generates
             // have algorithm "ML-DSA".
             expectedAlgorithm = "ML-DSA";
+        }
+        if (expectedAlgorithm.startsWith("EDDSA")) {
+            // This intentionally diverges from the OpenJDK implementation and JEP 339 (which return
+            // "EdDSA") to achieve backwards compatibility with the "AndroidKeyStore" provider,
+            // which supported generation of Ed25519 keys before Conscrypt did.
+            expectedAlgorithm = "1.3.101.112";
         }
         assertEquals(expectedAlgorithm, k.getAlgorithm().toUpperCase(Locale.ROOT));
         if (expectedAlgorithm.equals("DH")) {

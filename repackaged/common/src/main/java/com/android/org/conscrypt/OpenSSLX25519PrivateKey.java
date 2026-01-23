@@ -19,6 +19,9 @@ package com.android.org.conscrypt;
 
 import com.android.org.conscrypt.OpenSSLX509CertificateFactory.ParsingException;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.InvalidKeyException;
 import java.security.PrivateKey;
 import java.security.spec.EncodedKeySpec;
@@ -31,11 +34,22 @@ import java.util.Arrays;
 public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
     private static final long serialVersionUID = -3136201500221850916L;
     private static final byte[] PKCS8_PREAMBLE = new byte[] {
-            0x30, 0x2e, // Sequence: 46 bytes
-            0x02, 0x01, 0x00, // Integer: 0 (version)
-            0x30, 0x05, // Sequence: 5 bytes
-            0x06, 0x03, 0x2b, 0x65, 0x6e, // OID: 1.3.101.110 (X25519)
-            0x04, 0x22, 0x04, 0x20, // Octet string: 32 bytes
+            0x30,
+            0x2e, // Sequence: 46 bytes
+            0x02,
+            0x01,
+            0x00, // Integer: 0 (version)
+            0x30,
+            0x05, // Sequence: 5 bytes
+            0x06,
+            0x03,
+            0x2b,
+            0x65,
+            0x6e, // OID: 1.3.101.110 (X25519)
+            0x04,
+            0x22,
+            0x04,
+            0x20, // Octet string: 32 bytes
             // Key bytes follow directly
     };
 
@@ -116,5 +130,16 @@ public class OpenSSLX25519PrivateKey implements OpenSSLX25519Key, PrivateKey {
     @Override
     public int hashCode() {
         return Arrays.hashCode(uCoordinate);
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject(); // reads "uCoordinate"
+        if (uCoordinate.length != X25519_KEY_SIZE_BYTES) {
+            throw new IOException("Invalid key size");
+        }
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject(); // writes "uCoordinate"
     }
 }

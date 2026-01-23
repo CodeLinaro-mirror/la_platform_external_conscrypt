@@ -17,6 +17,9 @@
 
 package com.android.org.conscrypt;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.security.PublicKey;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
@@ -29,10 +32,18 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
     private static final long serialVersionUID = 453861992373478445L;
 
     private static final byte[] X509_PREAMBLE = new byte[] {
-            0x30, 0x2a, // Sequence: 42 bytes
-            0x30, 0x05, // Sequence: 5 bytes
-            0x06, 0x03, 0x2b, 0x65, 0x6e, // OID: 1.3.101.110 (X25519)
-            0x03, 0x21, 0x00, // Bit string: 256 bits
+            0x30,
+            0x2a, // Sequence: 42 bytes
+            0x30,
+            0x05, // Sequence: 5 bytes
+            0x06,
+            0x03,
+            0x2b,
+            0x65,
+            0x6e, // OID: 1.3.101.110 (X25519)
+            0x03,
+            0x21,
+            0x00, // Bit string: 256 bits
             // Key bytes follow directly
     };
 
@@ -111,5 +122,16 @@ public class OpenSSLX25519PublicKey implements OpenSSLX25519Key, PublicKey {
             throw new IllegalStateException("key is destroyed");
         }
         return Arrays.hashCode(uCoordinate);
+    }
+
+    private void readObject(ObjectInputStream stream) throws IOException, ClassNotFoundException {
+        stream.defaultReadObject(); // reads "uCoordinate"
+        if (uCoordinate.length != X25519_KEY_SIZE_BYTES) {
+            throw new IOException("Invalid key size");
+        }
+    }
+
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject(); // writes "uCoordinate"
     }
 }

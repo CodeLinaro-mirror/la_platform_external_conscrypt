@@ -32,6 +32,7 @@ import java.nio.channels.SocketChannel;
 import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.net.ssl.HandshakeCompletedEvent;
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLException;
@@ -118,7 +119,7 @@ abstract class AbstractConscryptSocket extends SSLSocket {
     }
 
     AbstractConscryptSocket(InetAddress address, int port, InetAddress clientAddress,
-            int clientPort) throws IOException {
+                            int clientPort) throws IOException {
         super(address, port, clientAddress, clientPort);
         this.socket = this;
         this.peerHostname = null;
@@ -634,49 +635,12 @@ abstract class AbstractConscryptSocket extends SSLSocket {
     abstract void setEchConfigList(byte[] echConfigList);
 
     /**
-     * Enables/disables TLS Channel ID for this server socket.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @throws IllegalStateException if this is a client socket or if the handshake has already
-     *         started.
-     */
-    abstract void setChannelIdEnabled(boolean enabled);
-
-    /**
-     * Gets the TLS Channel ID for this server socket. Channel ID is only available once the
-     * handshake completes.
-     *
-     * @return channel ID or {@code null} if not available.
-     *
-     * @throws IllegalStateException if this is a client socket or if the handshake has not yet
-     *         completed.
-     * @throws SSLException if channel ID is available but could not be obtained.
-     */
-    abstract byte[] getChannelId() throws SSLException;
-
-    /**
-     * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client socket.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key (disables
-     *        TLS Channel ID). The private key must be an Elliptic Curve (EC) key based on the NIST
-     *        P-256 curve (aka SECG secp256r1 or ANSI X9.62 prime256v1).
-     *
-     * @throws IllegalStateException if this is a server socket or if the handshake has already
-     *         started.
-     */
-    abstract void setChannelIdPrivateKey(PrivateKey privateKey);
-
-    /**
      * Returns the protocol agreed upon by client and server, or {@code null} if
      * no protocol was agreed upon.
      *
      * @deprecated use {@link #getApplicationProtocol()} instead.
      */
-    @Deprecated
-    abstract byte[] getAlpnSelectedProtocol();
+    @Deprecated abstract byte[] getAlpnSelectedProtocol();
 
     /**
      * Sets the list of ALPN protocols. This method internally converts the protocols to their
@@ -685,8 +649,7 @@ abstract class AbstractConscryptSocket extends SSLSocket {
      * @param alpnProtocols the list of ALPN protocols
      * @deprecated use {@link #setApplicationProtocols(String[])} instead.
      */
-    @Deprecated
-    abstract void setAlpnProtocols(String[] alpnProtocols);
+    @Deprecated abstract void setAlpnProtocols(String[] alpnProtocols);
 
     /**
      * Alternate version of {@link #setAlpnProtocols(String[])} that directly sets the list of
@@ -696,8 +659,7 @@ abstract class AbstractConscryptSocket extends SSLSocket {
      * @param alpnProtocols the encoded form of the ALPN protocol list
      * @deprecated Use {@link #setApplicationProtocols(String[])} instead.
      */
-    @Deprecated
-    abstract void setAlpnProtocols(byte[] alpnProtocols);
+    @Deprecated abstract void setAlpnProtocols(byte[] alpnProtocols);
 
     /**
      * Sets the list of ALPN protocols.

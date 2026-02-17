@@ -16,6 +16,8 @@
 
 package android.security.net.config;
 
+import static com.android.org.conscrypt.net.flags.Flags.certificateTransparencyDefaultEnabled;
+
 import android.compat.annotation.UnsupportedAppUsage;
 
 import com.android.org.conscrypt.ConscryptNetworkSecurityPolicy;
@@ -126,8 +128,8 @@ public class RootTrustManager
 
     @Override
     @UnsupportedAppUsage
-    public List<X509Certificate> checkServerTrusted(
-            X509Certificate[] certs, String authType, String hostname) throws CertificateException {
+    public List<X509Certificate> checkServerTrusted(X509Certificate[] certs, String authType,
+                                                    String hostname) throws CertificateException {
         if (hostname == null && mConfig.hasPerDomainConfigs()) {
             throw new CertificateException(
                     "Domain specific configurations require that the hostname be provided");
@@ -138,21 +140,25 @@ public class RootTrustManager
 
     @Override
     public List<X509Certificate> checkServerTrusted(X509Certificate[] certs, byte[] ocspData,
-            byte[] tlsSctData, String authType, String hostname) throws CertificateException {
+                                                    byte[] tlsSctData, String authType,
+                                                    String hostname) throws CertificateException {
         if (hostname == null && mConfig.hasPerDomainConfigs()) {
             throw new CertificateException(
                     "Domain specific configurations require that the hostname be provided");
         }
         NetworkSecurityConfig config = mConfig.getConfigForHostname(hostname);
-        return config.getTrustManager().checkServerTrusted(
-                certs, ocspData, tlsSctData, authType, hostname);
+        return config.getTrustManager().checkServerTrusted(certs, ocspData, tlsSctData, authType,
+                                                           hostname);
     }
 
     /**
      * This interface is used by Conscrypt, do not modify without modifying those callers.
      */
     public ConscryptNetworkSecurityPolicy getNetworkSecurityPolicy() {
-        return new ConscryptNetworkSecurityPolicy(new ConfigNetworkSecurityPolicy(mConfig));
+        if (certificateTransparencyDefaultEnabled()) {
+            return new ConscryptNetworkSecurityPolicy(new ConfigNetworkSecurityPolicy(mConfig));
+        }
+        return null;
     }
 
     @Override

@@ -39,6 +39,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+// g3-add: import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -123,6 +124,7 @@ public class HttpsURLConnectionTest {
         Future<Void> future = executor.submit(server.run(op));
 
         HttpsURLConnection connection = server.tlsConnection("/file");
+        // g3-add: broken HTTPS hostname verification
         int response = connection.getResponseCode();
         assertEquals(404, response);
 
@@ -135,6 +137,7 @@ public class HttpsURLConnectionTest {
         Future<Void> future = executor.submit(server.run(op));
 
         HttpsURLConnection connection = server.tlsConnection("/file");
+        // g3-add: broken HTTPS hostname verification
         int response = connection.getResponseCode();
         assertEquals(200, response);
 
@@ -192,7 +195,7 @@ public class HttpsURLConnectionTest {
         // cannot control network availability.
         assumeFalse("Skipping test. Connection not available", result instanceof ConnectException);
         assertTrue("Connection failure other than timeout received",
-                result instanceof SocketTimeoutException);
+                   result instanceof SocketTimeoutException);
     }
 
     @Test
@@ -254,8 +257,8 @@ public class HttpsURLConnectionTest {
         }
 
         @Override
-        public Socket createSocket(
-                InetAddress address, int port, InetAddress localAddress, int localPort) {
+        public Socket createSocket(InetAddress address, int port, InetAddress localAddress,
+                                   int localPort) {
             throw new UnsupportedOperationException();
         }
 

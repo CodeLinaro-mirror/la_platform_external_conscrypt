@@ -53,8 +53,8 @@ import java.util.logging.Logger;
  * @hide This class is not part of the Android public SDK API
  */
 @Internal
-public class LogStoreImpl implements LogStore {
-    private static final Logger logger = Logger.getLogger(LogStoreImpl.class.getName());
+public class LogStoreImplv2 implements LogStore {
+    private static final Logger logger = Logger.getLogger(LogStoreImplv2.class.getName());
     private static final int COMPAT_VERSION = 2;
     private static final Path logListPrefix;
     private static final Path logListSuffix;
@@ -92,19 +92,12 @@ public class LogStoreImpl implements LogStore {
         return logListPrefix.resolve(version).resolve(logListSuffix);
     }
 
-    public LogStoreImpl(Policy policy) {
-        this(policy, getPathForCompatVersion(COMPAT_VERSION));
+    public LogStoreImplv2(Policy policy) {
+        this(policy, getPathForCompatVersion(COMPAT_VERSION), Platform.getStatsLog(),
+             new SystemTimeSupplier());
     }
 
-    public LogStoreImpl(Policy policy, Path logList) {
-        this(policy, logList, Platform.getStatsLog());
-    }
-
-    public LogStoreImpl(Policy policy, Path logList, StatsLog metrics) {
-        this(policy, logList, metrics, new SystemTimeSupplier());
-    }
-
-    public LogStoreImpl(Policy policy, Path logList, StatsLog metrics, Supplier<Long> clock) {
+    public LogStoreImplv2(Policy policy, Path logList, StatsLog metrics, Supplier<Long> clock) {
         this.state = State.UNINITIALIZED;
         this.policy = policy;
         this.logList = logList;
@@ -152,7 +145,7 @@ public class LogStoreImpl implements LogStore {
     }
 
     @Override
-    public LogInfo getKnownLog(byte[] logId) {
+    public LogInfo getKnownLog(byte[] logId) throws LogStore.InvalidLogException {
         if (logId == null) {
             return null;
         }
@@ -188,7 +181,7 @@ public class LogStoreImpl implements LogStore {
     private synchronized void resetLogListIfRequired() {
         long now = clock.get();
         if (now >= this.logListLastChecked
-                && now < this.logListLastChecked + LOG_LIST_CHECK_INTERVAL_IN_MS) {
+            && now < this.logListLastChecked + LOG_LIST_CHECK_INTERVAL_IN_MS) {
             return;
         }
         this.logListLastChecked = now;
@@ -260,7 +253,7 @@ public class LogStoreImpl implements LogStore {
     }
 
     private void addLogsToMap(JSONArray logs, String operatorName, int logType,
-            Map<ByteArray, LogInfo> logsMap) throws JSONException {
+                              Map<ByteArray, LogInfo> logsMap) throws JSONException {
         for (int j = 0; j < logs.length(); j++) {
             JSONObject log = logs.getJSONObject(j);
             LogInfo.Builder builder = new LogInfo.Builder()
@@ -287,7 +280,7 @@ public class LogStoreImpl implements LogStore {
             //  positives when validating SCTs.
             if (logInfo.getStateAt(clock.get()) == LogInfo.STATE_UNKNOWN) {
                 throw new IllegalArgumentException("Log current state is "
-                        + "unknown, logId: " + logIdFromList);
+                                                   + "unknown, logId: " + logIdFromList);
             }
 
             logsMap.put(new ByteArray(logId), logInfo);

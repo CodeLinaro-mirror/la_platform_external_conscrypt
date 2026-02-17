@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.util.List;
 import java.util.function.BiFunction;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -75,21 +76,6 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
     @Override
     int maxSealOverhead() {
         return delegate.maxSealOverhead();
-    }
-
-    @Override
-    void setChannelIdEnabled(boolean enabled) {
-        delegate.setChannelIdEnabled(enabled);
-    }
-
-    @Override
-    byte[] getChannelId() throws SSLException {
-        return delegate.getChannelId();
-    }
-
-    @Override
-    void setChannelIdPrivateKey(PrivateKey privateKey) {
-        delegate.setChannelIdPrivateKey(privateKey);
     }
 
     @Override
@@ -255,7 +241,7 @@ final class Java8EngineWrapper extends AbstractConscryptEngine {
 
     @Override
     SSLEngineResult unwrap(ByteBuffer[] srcs, int srcsOffset, int srcsLength, ByteBuffer[] dsts,
-            int dstsOffset, int dstsLength) throws SSLException {
+                           int dstsOffset, int dstsLength) throws SSLException {
         return delegate.unwrap(srcs, srcsOffset, srcsLength, dsts, dstsOffset, dstsLength);
     }
 

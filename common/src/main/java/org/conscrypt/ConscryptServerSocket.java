@@ -19,6 +19,7 @@ package org.conscrypt;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+
 import javax.net.ssl.SSLServerSocket;
 
 /**
@@ -26,30 +27,25 @@ import javax.net.ssl.SSLServerSocket;
  */
 final class ConscryptServerSocket extends SSLServerSocket {
     private final SSLParametersImpl sslParameters;
-    private boolean channelIdEnabled;
     private boolean useEngineSocket;
 
     ConscryptServerSocket(SSLParametersImpl sslParameters) throws IOException {
         this.sslParameters = sslParameters;
     }
 
-    ConscryptServerSocket(int port, SSLParametersImpl sslParameters)
-        throws IOException {
+    ConscryptServerSocket(int port, SSLParametersImpl sslParameters) throws IOException {
         super(port);
         this.sslParameters = sslParameters;
     }
 
     ConscryptServerSocket(int port, int backlog, SSLParametersImpl sslParameters)
-        throws IOException {
+            throws IOException {
         super(port, backlog);
         this.sslParameters = sslParameters;
     }
 
-    ConscryptServerSocket(int port,
-                                      int backlog,
-                                      InetAddress iAddress,
-                                      SSLParametersImpl sslParameters)
-        throws IOException {
+    ConscryptServerSocket(int port, int backlog, InetAddress iAddress,
+                          SSLParametersImpl sslParameters) throws IOException {
         super(port, backlog, iAddress);
         this.sslParameters = sslParameters;
     }
@@ -117,20 +113,6 @@ final class ConscryptServerSocket extends SSLServerSocket {
     }
 
     /**
-     * Enables/disables the TLS Channel ID extension for this server socket.
-     */
-    void setChannelIdEnabled(boolean enabled) {
-      channelIdEnabled = enabled;
-    }
-
-    /**
-     * Checks whether the TLS Channel ID extension is enabled for this server socket.
-     */
-    boolean isChannelIdEnabled() {
-      return channelIdEnabled;
-    }
-
-    /**
      * This method enables the cipher suites listed by
      * getSupportedCipherSuites().
      *
@@ -182,7 +164,6 @@ final class ConscryptServerSocket extends SSLServerSocket {
             socket = Platform.createFileDescriptorSocket(sslParameters);
         }
 
-        socket.setChannelIdEnabled(channelIdEnabled);
         implAccept(socket);
         return socket;
     }

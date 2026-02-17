@@ -130,7 +130,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         }
         if (!(keySpec instanceof EncodedKeySpec)) {
             throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
-                    + keySpec.getClass().getName());
+                                              + keySpec.getClass().getName());
         }
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
         if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
@@ -142,13 +142,15 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         }
         byte[] encoded = encodedKeySpec.getEncoded();
         try {
-            OpenSSLKey key =
-                    new OpenSSLKey(NativeCrypto.EVP_PKEY_from_subject_public_key_info(encoded,
-                            new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
-                                    NativeConstants.EVP_PKEY_ML_DSA_87}));
+            OpenSSLKey key = new OpenSSLKey(NativeCrypto.EVP_PKEY_from_subject_public_key_info(
+                    encoded,
+                    new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
+                               NativeConstants.EVP_PKEY_ML_DSA_87}));
             return makePublicKey(key);
         } catch (OpenSSLX509CertificateFactory.ParsingException e) {
-            throw new InvalidKeySpecException("Invalid X.509 encoding", e);
+            throw new InvalidKeySpecException(
+                    "Unable to parse key. Only ML-DSA-65 and ML-DSA-87 are currently supported.",
+                    e);
         }
     }
 
@@ -186,7 +188,7 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
         }
         if (!(keySpec instanceof EncodedKeySpec)) {
             throw new InvalidKeySpecException("Currently only EncodedKeySpec is supported; was "
-                    + keySpec.getClass().getName());
+                                              + keySpec.getClass().getName());
         }
         EncodedKeySpec encodedKeySpec = (EncodedKeySpec) keySpec;
         if (encodedKeySpec.getFormat().equalsIgnoreCase("raw")) {
@@ -199,12 +201,17 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
 
         byte[] encoded = encodedKeySpec.getEncoded();
         try {
-            OpenSSLKey key = new OpenSSLKey(NativeCrypto.EVP_PKEY_from_private_key_info(encoded,
+            OpenSSLKey key = new OpenSSLKey(NativeCrypto.EVP_PKEY_from_private_key_info(
+                    encoded,
                     new int[] {NativeConstants.EVP_PKEY_ML_DSA_65,
-                            NativeConstants.EVP_PKEY_ML_DSA_87}));
+                               NativeConstants.EVP_PKEY_ML_DSA_87}));
             return makePrivateKey(key);
         } catch (OpenSSLX509CertificateFactory.ParsingException e) {
-            throw new InvalidKeySpecException("Invalid PKCS8 encoding", e);
+            throw new InvalidKeySpecException(
+                    "Unable to parse key. Only ML-DSA-65 and ML-DSA-87 are currently supported. "
+                            + "Please use ML-DSA 'seed format' as specified and recommended "
+                            + "in RFC 9881.",
+                    e);
         }
     }
 
@@ -246,7 +253,8 @@ public abstract class OpenSslMlDsaKeyFactory extends KeyFactorySpi {
             }
         }
         throw new InvalidKeySpecException("Unsupported key type and key spec combination; key="
-                + key.getClass().getName() + ", keySpec=" + keySpec.getName());
+                                          + key.getClass().getName()
+                                          + ", keySpec=" + keySpec.getName());
     }
 
     @Override

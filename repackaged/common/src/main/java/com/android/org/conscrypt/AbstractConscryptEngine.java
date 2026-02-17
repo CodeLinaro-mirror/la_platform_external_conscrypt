@@ -19,6 +19,7 @@ package com.android.org.conscrypt;
 
 import java.nio.ByteBuffer;
 import java.security.PrivateKey;
+
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
@@ -34,42 +35,6 @@ abstract class AbstractConscryptEngine extends SSLEngine {
      * Returns the maximum overhead, in bytes, of sealing a record with SSL.
      */
     abstract int maxSealOverhead();
-
-    /**
-     * Enables/disables TLS Channel ID for this server engine.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @throws IllegalStateException if this is a client engine or if the handshake has already
-     *         started.
-     */
-    abstract void setChannelIdEnabled(boolean enabled);
-
-    /**
-     * Gets the TLS Channel ID for this server engine. Channel ID is only available once the
-     * handshake completes.
-     *
-     * @return channel ID or {@code null} if not available.
-     *
-     * @throws IllegalStateException if this is a client engine or if the handshake has not yet
-     * completed.
-     * @throws SSLException if channel ID is available but could not be obtained.
-     */
-    abstract byte[] getChannelId() throws SSLException;
-
-    /**
-     * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client engine.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key (disables
-     *        TLS Channel ID). The private key must be an Elliptic Curve (EC) key based on the NIST
-     *        P-256 curve (aka SECG secp256r1 or ANSI X9.62 prime256v1).
-     *
-     * @throws IllegalStateException if this is a server engine or if the handshake has already
-     *         started.
-     */
-    abstract void setChannelIdPrivateKey(PrivateKey privateKey);
 
     /**
      * Sets the listener for the completion of the TLS handshake.
@@ -112,21 +77,21 @@ abstract class AbstractConscryptEngine extends SSLEngine {
 
     @Override
     public abstract SSLEngineResult unwrap(final ByteBuffer src, final ByteBuffer[] dsts,
-            final int offset, final int length) throws SSLException;
+                                           final int offset, final int length) throws SSLException;
 
     abstract SSLEngineResult unwrap(final ByteBuffer[] srcs, final ByteBuffer[] dsts)
             throws SSLException;
 
     abstract SSLEngineResult unwrap(final ByteBuffer[] srcs, int srcsOffset, final int srcsLength,
-            final ByteBuffer[] dsts, final int dstsOffset, final int dstsLength)
-            throws SSLException;
+                                    final ByteBuffer[] dsts, final int dstsOffset,
+                                    final int dstsLength) throws SSLException;
 
     @Override
     public abstract SSLEngineResult wrap(ByteBuffer src, ByteBuffer dst) throws SSLException;
 
     @Override
-    public abstract SSLEngineResult wrap(
-            ByteBuffer[] srcs, int srcsOffset, int srcsLength, ByteBuffer dst) throws SSLException;
+    public abstract SSLEngineResult wrap(ByteBuffer[] srcs, int srcsOffset, int srcsLength,
+                                         ByteBuffer dst) throws SSLException;
 
     /**
      * This method enables session ticket support.

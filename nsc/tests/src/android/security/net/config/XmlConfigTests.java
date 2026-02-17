@@ -19,7 +19,6 @@ package android.security.net.config;
 import static android.security.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_DISABLED;
 import static android.security.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_ENABLED;
 import static android.security.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_OPPORTUNISTIC;
-import static android.security.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_REQUIRED;
 import static android.security.net.config.NetworkSecurityConfig.defaultDomainEncryptionMode;
 
 import static com.android.org.conscrypt.net.flags.Flags.FLAG_CERTIFICATE_TRANSPARENCY_DEFAULT_ENABLED;
@@ -35,9 +34,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import libcore.junit.util.compat.CoreCompatChangeRule.DisableCompatChanges;
-import libcore.junit.util.compat.CoreCompatChangeRule.EnableCompatChanges;
-
 import android.compat.testing.PlatformCompatChangeRule;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -48,6 +44,9 @@ import android.platform.test.flag.junit.DeviceFlagsValueProvider;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
+
+import libcore.junit.util.compat.CoreCompatChangeRule.DisableCompatChanges;
+import libcore.junit.util.compat.CoreCompatChangeRule.EnableCompatChanges;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -75,8 +74,7 @@ public class XmlConfigTests {
     @Rule
     public final CheckFlagsRule mCheckFlagsRule = DeviceFlagsValueProvider.createCheckFlagsRule();
 
-    @Rule
-    public TestRule compatChangeRule = new PlatformCompatChangeRule();
+    @Rule public TestRule compatChangeRule = new PlatformCompatChangeRule();
 
     @Before
     public void setUp() throws Exception {
@@ -230,8 +228,8 @@ public class XmlConfigTests {
 
     @Test
     public void testMultipleDomains() throws Exception {
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.multiple_domains, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.multiple_domains,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         assertTrue(appConfig.hasPerDomainConfigs());
         NetworkSecurityConfig config = appConfig.getConfigForHostname("android.com");
@@ -253,8 +251,8 @@ public class XmlConfigTests {
 
     @Test
     public void testMultipleDomainConfigs() throws Exception {
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.multiple_configs, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.multiple_configs,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         assertTrue(appConfig.hasPerDomainConfigs());
         // Should be two different config objects
@@ -296,8 +294,8 @@ public class XmlConfigTests {
 
     @Test
     public void testResourcePemCertificateSource() throws Exception {
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.resource_anchors_pem, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.resource_anchors_pem,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         // Check android.com.
         NetworkSecurityConfig config = appConfig.getConfigForHostname("android.com");
@@ -314,8 +312,8 @@ public class XmlConfigTests {
 
     @Test
     public void testResourceDerCertificateSource() throws Exception {
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.resource_anchors_der, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.resource_anchors_der,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         // Check android.com.
         NetworkSecurityConfig config = appConfig.getConfigForHostname("android.com");
@@ -332,8 +330,8 @@ public class XmlConfigTests {
 
     @Test
     public void testNestedDomainConfigs() throws Exception {
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.nested_domains, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.nested_domains,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         assertTrue(appConfig.hasPerDomainConfigs());
         NetworkSecurityConfig parent = appConfig.getConfigForHostname("android.com");
@@ -352,8 +350,8 @@ public class XmlConfigTests {
 
     @Test
     public void testNestedDomainConfigsOverride() throws Exception {
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.nested_domains_override, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.nested_domains_override,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         assertTrue(appConfig.hasPerDomainConfigs());
         NetworkSecurityConfig parent = appConfig.getConfigForHostname("android.com");
@@ -443,7 +441,7 @@ public class XmlConfigTests {
             ApplicationConfig appConfig = new ApplicationConfig(source);
             appConfig.getConfigForHostname("android.com");
             fail("Bad config " + mContext.getResources().getResourceName(configId)
-                    + " did not fail to parse");
+                 + " did not fail to parse");
         } catch (RuntimeException e) {
             assertTrue(XmlConfigSource.ParserException.class.isAssignableFrom(
                     e.getCause().getClass()));
@@ -533,8 +531,8 @@ public class XmlConfigTests {
         assertFalse(config.getTrustAnchors().isEmpty());
 
         // Check that the _debug file is ignored if debug is false.
-        source = new XmlConfigSource(
-                mContext, R.xml.extra_debug_resource, TestUtils.makeApplicationInfo());
+        source = new XmlConfigSource(mContext, R.xml.extra_debug_resource,
+                                     TestUtils.makeApplicationInfo());
         appConfig = new ApplicationConfig(source);
         assertFalse(appConfig.hasPerDomainConfigs());
         config = appConfig.getConfigForHostname("");
@@ -544,8 +542,8 @@ public class XmlConfigTests {
     @Test
     public void testExtraDebugResourceIgnored() throws Exception {
         // Verify that parsing the extra debug config resource fails only when debugging is true.
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.bad_extra_debug_resource, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.bad_extra_debug_resource,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         // Force parsing the config file.
         appConfig.getConfigForHostname("");
@@ -563,8 +561,8 @@ public class XmlConfigTests {
 
     @Test
     public void testDomainWhitespaceTrimming() throws Exception {
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.domain_whitespace, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.domain_whitespace,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         NetworkSecurityConfig defaultConfig = appConfig.getConfigForHostname("");
         assertNotEquals(defaultConfig, appConfig.getConfigForHostname("developer.android.com"));
@@ -610,7 +608,7 @@ public class XmlConfigTests {
         ApplicationConfig appConfig = new ApplicationConfig(source);
 
         assertEquals(CERTIFICATE_TRANSPARENCY_REASON_SDK_TARGET_DEFAULT_ENABLED,
-                appConfig.getCertificateTransparencyVerificationReason(""));
+                     appConfig.getCertificateTransparencyVerificationReason(""));
     }
 
     @Test
@@ -621,7 +619,7 @@ public class XmlConfigTests {
         ApplicationConfig appConfig = new ApplicationConfig(source);
 
         assertEquals(CERTIFICATE_TRANSPARENCY_REASON_APP_OPT_IN,
-                appConfig.getCertificateTransparencyVerificationReason(""));
+                     appConfig.getCertificateTransparencyVerificationReason(""));
     }
 
     @Test
@@ -645,8 +643,8 @@ public class XmlConfigTests {
     @Test
     @RequiresFlagsEnabled(FLAG_ENCRYPTED_CLIENT_HELLO_PLATFORM)
     public void testDomainEncryptionBaseConfig_returnsSpecifiedValue() throws Exception {
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.domain_encryption_base_config, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.domain_encryption_base_config,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         assertFalse(appConfig.hasPerDomainConfigs());
         NetworkSecurityConfig config = appConfig.getConfigForHostname(/* hostname= */ "");
@@ -675,8 +673,10 @@ public class XmlConfigTests {
         config = appConfig.getConfigForHostname("enabled.android.com");
         assertEquals(DOMAIN_ENCRYPTION_MODE_ENABLED, config.getDomainEncryptionMode());
 
+        // TODO(b/476104302): update this assert once we have added back in support for required.
+        // Ensure that even with "required" set, we fall back to opportunistic at this point.
         config = appConfig.getConfigForHostname("required.android.com");
-        assertEquals(DOMAIN_ENCRYPTION_MODE_REQUIRED, config.getDomainEncryptionMode());
+        assertEquals(DOMAIN_ENCRYPTION_MODE_OPPORTUNISTIC, config.getDomainEncryptionMode());
     }
 
     @Test
@@ -684,8 +684,8 @@ public class XmlConfigTests {
     @EnableCompatChanges({NetworkSecurityConfig.ENABLE_DEFAULT_ENCRYPTED_CLIENT_HELLO})
     public void testDomainEncryptionInvalidValues_enabledAppCompat_returnsDefaultOpportunisticMode()
             throws Exception {
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.domain_encryption_invalid, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.domain_encryption_invalid,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         assertTrue(appConfig.hasPerDomainConfigs());
         NetworkSecurityConfig config = appConfig.getConfigForHostname(/* hostname= */ "");
@@ -710,8 +710,8 @@ public class XmlConfigTests {
     @DisableCompatChanges({NetworkSecurityConfig.ENABLE_DEFAULT_ENCRYPTED_CLIENT_HELLO})
     public void testDomainEncryptionInvalidValues_disabledAppCompat_returnsDefaultDisabledMode()
             throws Exception {
-        XmlConfigSource source = new XmlConfigSource(
-                mContext, R.xml.domain_encryption_invalid, TestUtils.makeApplicationInfo());
+        XmlConfigSource source = new XmlConfigSource(mContext, R.xml.domain_encryption_invalid,
+                                                     TestUtils.makeApplicationInfo());
         ApplicationConfig appConfig = new ApplicationConfig(source);
         assertTrue(appConfig.hasPerDomainConfigs());
         NetworkSecurityConfig config = appConfig.getConfigForHostname(/* hostname= */ "");

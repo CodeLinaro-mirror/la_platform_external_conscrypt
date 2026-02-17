@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.PrivateKey;
+
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 
@@ -34,8 +35,7 @@ import javax.net.ssl.SSLSession;
 @libcore.api.CorePlatformApi(status = libcore.api.CorePlatformApi.Status.STABLE)
 @Internal
 public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
-    OpenSSLSocketImpl() throws IOException {
-    }
+    OpenSSLSocketImpl() throws IOException {}
 
     OpenSSLSocketImpl(String hostname, int port) throws IOException {
         super(hostname, port);
@@ -46,18 +46,17 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
     }
 
     OpenSSLSocketImpl(String hostname, int port, InetAddress clientAddress, int clientPort)
-        throws IOException {
+            throws IOException {
         super(hostname, port, clientAddress, clientPort);
     }
 
-    OpenSSLSocketImpl(InetAddress address, int port, InetAddress clientAddress,
-        int clientPort)
-        throws IOException {
+    OpenSSLSocketImpl(InetAddress address, int port, InetAddress clientAddress, int clientPort)
+            throws IOException {
         super(address, port, clientAddress, clientPort);
     }
 
     OpenSSLSocketImpl(Socket socket, String hostname, int port, boolean autoClose)
-        throws IOException {
+            throws IOException {
         super(socket, hostname, port, autoClose);
     }
 
@@ -67,8 +66,8 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
         return super.getHostname();
     }
 
-    @android.compat.annotation.
-    UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
+    @android.compat.annotation.UnsupportedAppUsage(
+            maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives = "Use {@code javax.net.ssl.SSLParameters#setServerNames}.")
     @libcore.api.CorePlatformApi(status = libcore.api.CorePlatformApi.Status.STABLE)
     @Override
@@ -108,11 +107,10 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
         super.setHandshakeTimeout(handshakeTimeoutMilliseconds);
     }
 
-    @Override
-    public abstract SSLSession getHandshakeSession();
+    @Override public abstract SSLSession getHandshakeSession();
 
-    @android.compat.annotation.
-    UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
+    @android.compat.annotation.UnsupportedAppUsage(
+            maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives = "Use {@link android.net.ssl.SSLSockets#setUseSessionTickets}.")
     @libcore.api.CorePlatformApi(status = libcore.api.CorePlatformApi.Status.STABLE)
     @Override
@@ -122,16 +120,7 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
     @Override public abstract void setEchConfigList(byte[] echConfigList);
 
     @android.compat.annotation.UnsupportedAppUsage(maxTargetSdk = 30, trackingBug = 170729553)
-    @Override
-    public abstract void setChannelIdEnabled(boolean enabled);
-
-    @android.compat.annotation.UnsupportedAppUsage(maxTargetSdk = 30, trackingBug = 170729553)
-    @Override
-    public abstract byte[] getChannelId() throws SSLException;
-
-    @android.compat.annotation.UnsupportedAppUsage(maxTargetSdk = 30, trackingBug = 170729553)
     @libcore.api.CorePlatformApi(status = libcore.api.CorePlatformApi.Status.STABLE)
-    @Override
     public abstract void setChannelIdPrivateKey(PrivateKey privateKey);
 
     /**
@@ -157,8 +146,8 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
     /**
      * @deprecated use {@link #setApplicationProtocols(String[])} instead.
      */
-    @android.compat.annotation.
-    UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
+    @android.compat.annotation.UnsupportedAppUsage(
+            maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives =
                     "Use {@code "
                     + "javax.net.ssl.SSLParameters#setApplicationProtocols(java.lang.String[])}.")
@@ -172,8 +161,8 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
     /**
      * @deprecated use {@link #getApplicationProtocol()} instead.
      */
-    @android.compat.annotation.
-    UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
+    @android.compat.annotation.UnsupportedAppUsage(
+            maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives = "Use {@code javax.net.ssl.SSLSocket#getApplicationProtocol()}.")
     @libcore.api.CorePlatformApi(status = libcore.api.CorePlatformApi.Status.STABLE)
     @Override
@@ -186,8 +175,8 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
     /**
      * @deprecated Use {@link #setAlpnProtocols(String[])} instead.
      */
-    @android.compat.annotation.
-    UnsupportedAppUsage(maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
+    @android.compat.annotation.UnsupportedAppUsage(
+            maxTargetSdk = dalvik.annotation.compat.VersionCodes.Q,
             publicAlternatives =
                     "Use {@code "
                     + "javax.net.ssl.SSLParameters#setApplicationProtocols(java.lang.String[])}.")
@@ -196,6 +185,9 @@ public abstract class OpenSSLSocketImpl extends AbstractConscryptSocket {
     @Deprecated
     public final void
     setAlpnProtocols(byte[] protocols) {
-        setApplicationProtocols(SSLUtils.decodeProtocols(protocols == null ? EmptyArray.BYTE : protocols));
+        setApplicationProtocols(
+                SSLUtils.decodeProtocols(protocols == null ? EmptyArray.BYTE : protocols));
     }
+
+    @Override public abstract String getCurveNameForTesting();
 }

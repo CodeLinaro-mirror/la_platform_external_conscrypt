@@ -62,8 +62,7 @@ import javax.security.auth.x500.X500Principal;
  * </ul>
  */
 class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
-        implements NativeCrypto.SSLHandshakeCallbacks,
-                   SSLParametersImpl.PSKCallbacks,
+        implements NativeCrypto.SSLHandshakeCallbacks, SSLParametersImpl.PSKCallbacks,
                    SSLParametersImpl.AliasChooser {
     private static final boolean DBG_STATE = false;
 
@@ -96,12 +95,6 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      */
     private final Object guard = Platform.closeGuardGet();
 
-    /**
-     * Private key for the TLS Channel ID extension. This field is client-side
-     * only. Set during startHandshake.
-     */
-    private OpenSSLKey channelIdPrivateKey;
-
     private final ActiveSession activeSession;
     /**
      * A snapshot of the active session when the engine was closed.
@@ -111,12 +104,12 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
      * The session object exposed externally from this class.
      */
     private final SSLSession externalSession =
-        Platform.wrapSSLSession(new ExternalSession(new ExternalSession.Provider() {
-            @Override
-            public ConscryptSession provideSession() {
-                return ConscryptFileDescriptorSocket.this.provideSession();
-            }
-        }));
+            Platform.wrapSSLSession(new ExternalSession(new ExternalSession.Provider() {
+                @Override
+                public ConscryptSession provideSession() {
+                    return ConscryptFileDescriptorSocket.this.provideSession();
+                }
+            }));
 
     private int writeTimeoutMilliseconds = 0;
     private int handshakeTimeoutMilliseconds = -1; // -1 = same as timeout; 0 = infinite
@@ -148,7 +141,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     ConscryptFileDescriptorSocket(String hostname, int port, InetAddress clientAddress,
-            int clientPort, SSLParametersImpl sslParameters) throws IOException {
+                                  int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
         super(hostname, port, clientAddress, clientPort);
         this.sslParameters = sslParameters;
         this.ssl = newSsl(sslParameters, this);
@@ -156,7 +150,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     ConscryptFileDescriptorSocket(InetAddress address, int port, InetAddress clientAddress,
-            int clientPort, SSLParametersImpl sslParameters) throws IOException {
+                                  int clientPort, SSLParametersImpl sslParameters)
+            throws IOException {
         super(address, port, clientAddress, clientPort);
         this.sslParameters = sslParameters;
         this.ssl = newSsl(sslParameters, this);
@@ -164,7 +159,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     ConscryptFileDescriptorSocket(Socket socket, String hostname, int port, boolean autoClose,
-            SSLParametersImpl sslParameters) throws IOException {
+                                  SSLParametersImpl sslParameters) throws IOException {
         super(socket, hostname, port, autoClose);
         this.sslParameters = sslParameters;
         this.ssl = newSsl(sslParameters, this);
@@ -172,7 +167,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     private static NativeSsl newSsl(SSLParametersImpl sslParameters,
-            ConscryptFileDescriptorSocket engine) throws SSLException {
+                                    ConscryptFileDescriptorSocket engine) throws SSLException {
         return NativeSsl.newInstance(sslParameters, engine, engine, engine);
     }
 
@@ -201,7 +196,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
             Platform.closeGuardOpen(guard, "close");
 
             // Prepare the SSL object for the handshake.
-            ssl.initialize(getHostname(), channelIdPrivateKey);
+            ssl.initialize(getHostname());
 
             // For clients, offer to resume a previously cached session to avoid the
             // full TLS handshake.
@@ -306,7 +301,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     @Override
     @SuppressWarnings("unused") // used by NativeCrypto.SSLHandshakeCallbacks / client_cert_cb
     public final void clientCertificateRequested(byte[] keyTypeBytes, int[] signatureAlgs,
-            byte[][] asn1DerEncodedPrincipals)
+                                                 byte[][] asn1DerEncodedPrincipals)
             throws CertificateEncodingException, SSLException {
         ssl.chooseClientCertificate(keyTypeBytes, signatureAlgs, asn1DerEncodedPrincipals);
     }
@@ -476,9 +471,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
         startHandshake();
 
         synchronized (ssl) {
-            while (state != STATE_READY &&
-                    state != STATE_READY_HANDSHAKE_CUT_THROUGH &&
-                    state != STATE_CLOSED) {
+            while (state != STATE_READY && state != STATE_READY_HANDSHAKE_CUT_THROUGH
+                   && state != STATE_CLOSED) {
                 try {
                     ssl.wait();
                 } catch (InterruptedException e) {
@@ -506,8 +500,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
          */
         private final Object readLock = new Object();
 
-        SSLInputStream() {
-        }
+        SSLInputStream() {}
 
         /**
          * Reads one byte. If there is no data in the underlying buffer,
@@ -546,8 +539,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                     }
                 }
 
-                int ret =  ssl.read(
-                        Platform.getFileDescriptor(socket), buf, offset, byteCount, getSoTimeout());
+                int ret = ssl.read(Platform.getFileDescriptor(socket), buf, offset, byteCount,
+                                   getSoTimeout());
                 if (ret == -1) {
                     synchronized (ssl) {
                         if (state == STATE_CLOSED) {
@@ -590,8 +583,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
          */
         private final Object writeLock = new Object();
 
-        SSLOutputStream() {
-        }
+        SSLOutputStream() {}
 
         /**
          * Method acts as described in spec for superclass.
@@ -629,7 +621,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 }
 
                 ssl.write(Platform.getFileDescriptor(socket), buf, offset, byteCount,
-                        writeTimeoutMilliseconds);
+                          writeTimeoutMilliseconds);
 
                 synchronized (ssl) {
                     if (state == STATE_CLOSED) {
@@ -687,16 +679,16 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     // After handshake has started, provide active session otherwise a null session,
     // for code which needs to read session attributes without triggering the handshake.
     private ConscryptSession provideAfterHandshakeSession() {
-        return (state < STATE_HANDSHAKE_STARTED)
-            ? SSLNullSession.getNullSession()
-            : provideSession();
+        return (state < STATE_HANDSHAKE_STARTED) ? SSLNullSession.getNullSession()
+                                                 : provideSession();
     }
 
     // If handshake is in progress, provide active session otherwise a null session.
     private ConscryptSession provideHandshakeSession() {
         synchronized (ssl) {
-            return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY ? activeSession
-                : SSLNullSession.getNullSession();
+            return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY
+                    ? activeSession
+                    : SSLNullSession.getNullSession();
         }
     }
 
@@ -761,7 +753,7 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     @Override
-    final String getCurveNameForTesting() {
+    public final String getCurveNameForTesting() {
         return ssl.getCurveNameForTesting();
     }
 
@@ -793,102 +785,10 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     }
 
     /**
-     * Enables/disables TLS Channel ID for this server socket.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @throws IllegalStateException if this is a client socket or if the handshake has already
-     *         started.
+     * No-op.
      */
     @Override
-    public final void setChannelIdEnabled(boolean enabled) {
-        if (getUseClientMode()) {
-            throw new IllegalStateException("Client mode");
-        }
-
-        synchronized (ssl) {
-            if (state != STATE_NEW) {
-                throw new IllegalStateException(
-                        "Could not enable/disable Channel ID after the initial handshake has"
-                                + " begun.");
-            }
-        }
-        sslParameters.channelIdEnabled = enabled;
-    }
-
-    /**
-     * Gets the TLS Channel ID for this server socket. Channel ID is only available once the
-     * handshake completes.
-     *
-     * @return channel ID or {@code null} if not available.
-     *
-     * @throws IllegalStateException if this is a client socket or if the handshake has not yet
-     *         completed.
-     * @throws SSLException if channel ID is available but could not be obtained.
-     */
-    @Override
-    public final byte[] getChannelId() throws SSLException {
-        if (getUseClientMode()) {
-            throw new IllegalStateException("Client mode");
-        }
-
-        synchronized (ssl) {
-            if (state != STATE_READY) {
-                throw new IllegalStateException(
-                        "Channel ID is only available after handshake completes");
-            }
-        }
-        return ssl.getTlsChannelId();
-    }
-
-    /**
-     * Sets the {@link PrivateKey} to be used for TLS Channel ID by this client socket.
-     *
-     * <p>This method needs to be invoked before the handshake starts.
-     *
-     * @param privateKey private key (enables TLS Channel ID) or {@code null} for no key (disables
-     *        TLS Channel ID). The private key must be an Elliptic Curve (EC) key based on the NIST
-     *        P-256 curve (aka SECG secp256r1 or ANSI X9.62 prime256v1).
-     *
-     * @throws IllegalStateException if this is a server socket or if the handshake has already
-     *         started.
-     */
-    @Override
-    public final void setChannelIdPrivateKey(PrivateKey privateKey) {
-        if (!getUseClientMode()) {
-            throw new IllegalStateException("Server mode");
-        }
-
-        synchronized (ssl) {
-            if (state != STATE_NEW) {
-                throw new IllegalStateException(
-                        "Could not change Channel ID private key after the initial handshake has"
-                                + " begun.");
-            }
-        }
-
-        if (privateKey == null) {
-            sslParameters.channelIdEnabled = false;
-            channelIdPrivateKey = null;
-        } else {
-            sslParameters.channelIdEnabled = true;
-            try {
-                ECParameterSpec ecParams = null;
-                if (privateKey instanceof ECKey) {
-                    ecParams = ((ECKey) privateKey).getParams();
-                }
-                if (ecParams == null) {
-                    // Assume this is a P-256 key, as specified in the contract of this method.
-                    ecParams =
-                            OpenSSLECGroupContext.getCurveByName("prime256v1").getECParameterSpec();
-                }
-                channelIdPrivateKey =
-                        OpenSSLKey.fromECPrivateKeyForTLSStackOnly(privateKey, ecParams);
-            } catch (InvalidKeyException e) {
-                // Will have error in startHandshake
-            }
-        }
-    }
+    public final void setChannelIdPrivateKey(PrivateKey privateKey) {}
 
     @Override
     byte[] getTlsUnique() {
@@ -1138,7 +1038,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
     public final String getHandshakeApplicationProtocol() {
         synchronized (ssl) {
             return state >= STATE_HANDSHAKE_STARTED && state < STATE_READY
-                ? getApplicationProtocol() : null;
+                    ? getApplicationProtocol()
+                    : null;
         }
     }
 
@@ -1169,7 +1070,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
 
     @Override
     @SuppressWarnings("deprecation") // PSKKeyManager is deprecated, but in our own package
-    public final SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint, String identity) {
+    public final SecretKey getPSKKey(PSKKeyManager keyManager, String identityHint,
+                                     String identity) {
         return keyManager.getKey(identityHint, identity, this);
     }
 
@@ -1207,8 +1109,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                 if (handshakeStartedMillis != 0) {
                     StatsLog statsLog = Platform.getStatsLog();
                     if (statsLog != null) {
-                        statsLog.countTlsHandshake(true, activeSession.getProtocol(),
-                                activeSession.getCipherSuite(),
+                        statsLog.countTlsHandshake(
+                                true, activeSession.getProtocol(), activeSession.getCipherSuite(),
                                 Platform.getMillisSinceBoot() - handshakeStartedMillis);
                     }
                     handshakeStartedMillis = 0;
@@ -1220,7 +1122,8 @@ class ConscryptFileDescriptorSocket extends OpenSSLSocketImpl
                     // Handshake was in progress so must have failed.
                     StatsLog statsLog = Platform.getStatsLog();
                     if (statsLog != null) {
-                        statsLog.countTlsHandshake(false, "TLS_PROTO_FAILED", "TLS_CIPHER_FAILED",
+                        statsLog.countTlsHandshake(
+                                false, "TLS_PROTO_FAILED", "TLS_CIPHER_FAILED",
                                 Platform.getMillisSinceBoot() - handshakeStartedMillis);
                     }
                     handshakeStartedMillis = 0;

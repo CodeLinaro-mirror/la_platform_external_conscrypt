@@ -1,4 +1,3 @@
-/* GENERATED SOURCE. DO NOT MODIFY. */
 /*
  * Copyright (C) 2015 The Android Open Source Project
  *
@@ -15,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.org.conscrypt.ct;
+package org.conscrypt.ct;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -23,9 +22,8 @@ import static org.junit.Assert.assertNull;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import com.android.org.conscrypt.OpenSSLKey;
-import com.android.org.conscrypt.metrics.NoopStatsLog;
-
+import org.conscrypt.OpenSSLKey;
+import org.conscrypt.metrics.NoopStatsLog;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,11 +39,8 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.function.Supplier;
 
-/**
- * @hide This class is not part of the Android public SDK API
- */
 @RunWith(JUnit4.class)
-public class LogStoreImplTest {
+public class LogStoreImplv2Test {
     /** FakeStatsLog captures the events being reported */
     static class FakeStatsLog extends NoopStatsLog {
         public ArrayList<LogStore.State> states = new ArrayList<LogStore.State>();
@@ -62,8 +57,8 @@ public class LogStoreImplTest {
             return true;
         }
         @Override
-        public PolicyCompliance doesResultConformToPolicy(
-                VerificationResult result, X509Certificate leaf) {
+        public PolicyCompliance doesResultConformToPolicy(VerificationResult result,
+                                                          X509Certificate leaf) {
             return PolicyCompliance.COMPLY;
         }
     };
@@ -74,8 +69,8 @@ public class LogStoreImplTest {
             return false;
         }
         @Override
-        public PolicyCompliance doesResultConformToPolicy(
-                VerificationResult result, X509Certificate leaf) {
+        public PolicyCompliance doesResultConformToPolicy(VerificationResult result,
+                                                          X509Certificate leaf) {
             return PolicyCompliance.COMPLY;
         }
     };
@@ -207,11 +202,12 @@ public class LogStoreImplTest {
         FakeStatsLog metrics = new FakeStatsLog();
         logList = writeLogList(validLogList);
         TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
-        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        LogStore store = new LogStoreImplv2(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
         byte[] pem = ("-----BEGIN PUBLIC KEY-----\n"
-                + "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHblsqctplMVc5ramA7vSuNxUQxcomQwGAVAdnWTAWUYr"
-                + "3MgDHQW0LagJ95lB7QT75Ve6JgT2EVLOFGU7L3YrwA=="
-                + "\n-----END PUBLIC KEY-----\n")
+                      + "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEHblsqctplMVc5ramA7vSuNxUQxcomQwGAVAdnW"
+                      + "TAWUYr"
+                      + "3MgDHQW0LagJ95lB7QT75Ve6JgT2EVLOFGU7L3YrwA=="
+                      + "\n-----END PUBLIC KEY-----\n")
                              .getBytes(US_ASCII);
         ByteArrayInputStream is = new ByteArrayInputStream(pem);
         LogInfo log1 =
@@ -227,7 +223,7 @@ public class LogStoreImplTest {
         assertEquals("An existing logId should be returned", log1, store.getKnownLog(log1Id));
         assertEquals("One metric update should be emitted", 1, metrics.states.size());
         assertEquals("The metric update for log list state should be compliant",
-                LogStore.State.COMPLIANT, metrics.states.get(0));
+                     LogStore.State.COMPLIANT, metrics.states.get(0));
     }
 
     @Test
@@ -236,13 +232,13 @@ public class LogStoreImplTest {
         String content = "}}";
         logList = writeLogList(content);
         TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
-        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        LogStore store = new LogStoreImplv2(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
 
-        assertEquals(
-                "The log state should be malformed", LogStore.State.MALFORMED, store.getState());
+        assertEquals("The log state should be malformed", LogStore.State.MALFORMED,
+                     store.getState());
         assertEquals("One metric update should be emitted", 1, metrics.states.size());
         assertEquals("The metric update for log list state should be malformed",
-                LogStore.State.MALFORMED, metrics.states.get(0));
+                     LogStore.State.MALFORMED, metrics.states.get(0));
     }
 
     @Test
@@ -250,13 +246,13 @@ public class LogStoreImplTest {
         FakeStatsLog metrics = new FakeStatsLog();
         logList = writeLogList(validLogList); // The logs are usable from 2024 onwards.
         TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2022);
-        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        LogStore store = new LogStoreImplv2(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
 
-        assertEquals(
-                "The log state should be malformed", LogStore.State.MALFORMED, store.getState());
+        assertEquals("The log state should be malformed", LogStore.State.MALFORMED,
+                     store.getState());
         assertEquals("One metric update should be emitted", 1, metrics.states.size());
         assertEquals("The metric update for log list state should be malformed",
-                LogStore.State.MALFORMED, metrics.states.get(0));
+                     LogStore.State.MALFORMED, metrics.states.get(0));
     }
 
     @Test
@@ -265,13 +261,13 @@ public class LogStoreImplTest {
         Path missingLogList = Paths.get("missing_dir", "missing_subdir", "does_not_exist_log_list");
         TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
         LogStore store =
-                new LogStoreImpl(alwaysCompliantStorePolicy, missingLogList, metrics, fakeTime);
+                new LogStoreImplv2(alwaysCompliantStorePolicy, missingLogList, metrics, fakeTime);
 
-        assertEquals(
-                "The log state should be not found", LogStore.State.NOT_FOUND, store.getState());
+        assertEquals("The log state should be not found", LogStore.State.NOT_FOUND,
+                     store.getState());
         assertEquals("One metric update should be emitted", 1, metrics.states.size());
         assertEquals("The metric update for log list state should be not found",
-                LogStore.State.NOT_FOUND, metrics.states.get(0));
+                     LogStore.State.NOT_FOUND, metrics.states.get(0));
     }
 
     @Test
@@ -285,9 +281,9 @@ public class LogStoreImplTest {
         Files.deleteIfExists(parentDir);
         Files.deleteIfExists(grandparentDir);
         TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
-        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
-        assertEquals(
-                "The log state should be not found", LogStore.State.NOT_FOUND, store.getState());
+        LogStore store = new LogStoreImplv2(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        assertEquals("The log state should be not found", LogStore.State.NOT_FOUND,
+                     store.getState());
 
         // Act
         Files.createDirectory(grandparentDir);
@@ -297,13 +293,13 @@ public class LogStoreImplTest {
         // Assert
         // 5min < 10min, we should not check the log list yet.
         fakeTime.setCurrentTimeInMs(JAN2024 + 5L * 60 * 1000);
-        assertEquals(
-                "The log state should be not found", LogStore.State.NOT_FOUND, store.getState());
+        assertEquals("The log state should be not found", LogStore.State.NOT_FOUND,
+                     store.getState());
 
         // 12min, the log list should be reloadable.
         fakeTime.setCurrentTimeInMs(JAN2024 + 12L * 60 * 1000);
-        assertEquals(
-                "The log state should be compliant", LogStore.State.COMPLIANT, store.getState());
+        assertEquals("The log state should be compliant", LogStore.State.COMPLIANT,
+                     store.getState());
     }
 
     @Test
@@ -317,9 +313,9 @@ public class LogStoreImplTest {
         Files.deleteIfExists(parentDir);
         Files.deleteIfExists(grandparentDir);
         TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024 + 100L * 60 * 1000);
-        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
-        assertEquals(
-                "The log state should be not found", LogStore.State.NOT_FOUND, store.getState());
+        LogStore store = new LogStoreImplv2(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        assertEquals("The log state should be not found", LogStore.State.NOT_FOUND,
+                     store.getState());
 
         Files.createDirectory(grandparentDir);
         Files.createDirectory(parentDir);
@@ -327,8 +323,8 @@ public class LogStoreImplTest {
         // Move back in time.
         fakeTime.setCurrentTimeInMs(JAN2024);
 
-        assertEquals(
-                "The log state should be compliant", LogStore.State.COMPLIANT, store.getState());
+        assertEquals("The log state should be compliant", LogStore.State.COMPLIANT,
+                     store.getState());
     }
 
     @Test
@@ -336,15 +332,15 @@ public class LogStoreImplTest {
         FakeStatsLog metrics = new FakeStatsLog();
         logList = writeLogList(validLogList);
         TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
-        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        LogStore store = new LogStoreImplv2(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
         assertEquals("The log should be loaded", LogStore.State.COMPLIANT, store.getState());
 
         Files.delete(logList);
         // 12min, the log list should be reloadable.
         fakeTime.setCurrentTimeInMs(JAN2024 + 12L * 60 * 1000);
 
-        assertEquals(
-                "The log should have been refreshed", LogStore.State.NOT_FOUND, store.getState());
+        assertEquals("The log should have been refreshed", LogStore.State.NOT_FOUND,
+                     store.getState());
     }
 
     @Test
@@ -352,7 +348,7 @@ public class LogStoreImplTest {
         FakeStatsLog metrics = new FakeStatsLog();
         logList = writeLogList(validLogList);
         TimeSupplier fakeTime = new TimeSupplier(/* currentTimeInMs= */ JAN2024);
-        LogStore store = new LogStoreImpl(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
+        LogStore store = new LogStoreImplv2(alwaysCompliantStorePolicy, logList, metrics, fakeTime);
         assertEquals("The log should be loaded", LogStore.State.COMPLIANT, store.getState());
 
         Path oldParentDir = parentDir;
@@ -362,8 +358,8 @@ public class LogStoreImplTest {
         // 12min, the log list should be reloadable.
         fakeTime.setCurrentTimeInMs(JAN2024 + 12L * 60 * 1000);
 
-        assertEquals(
-                "The log should have been refreshed", LogStore.State.NOT_FOUND, store.getState());
+        assertEquals("The log should have been refreshed", LogStore.State.NOT_FOUND,
+                     store.getState());
     }
 
     private Path writeLogList(String content) throws IOException {

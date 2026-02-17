@@ -350,6 +350,7 @@ java_library {
         "com.android.conscrypt",
         "test_com.android.conscrypt",
     ],
+    jarjar_rules: "flatbuffers-jarjar-rules.txt",
     // Conscrypt should support R
     min_sdk_version: "30",
 
@@ -361,6 +362,7 @@ java_library {
     srcs: [
         ":conscrypt_java_files",
         ":conscrypt_public_api_files",
+        ":conscrypt_generated_flatbuffers",
     ],
 
     libs: [
@@ -368,6 +370,7 @@ java_library {
         "unsupportedappusage",
     ],
     static_libs: [
+        "flatbuffers-java",
         "conscrypt-aconfig-flags-lib",
         "conscrypt-statslog-java",
         "networksecurity-aconfig-flags-lib",
@@ -399,6 +402,19 @@ java_library {
     ],
     lint: {
         baseline_filename: "lint-baseline-conscrypt.xml",
+    },
+    optimize: {
+        enabled: select(release_flag("RELEASE_CONSCRYPT_R8"), {
+            true: true,
+            default: false,
+        }),
+        ignore_warnings: false,
+        shrink: true,
+        optimize: false,
+        obfuscate: false,
+        protect_api_surface: true,
+        include: "r8_include_list.txt",
+        proguard_compatibility: false,
     },
 }
 
@@ -953,9 +969,11 @@ android_test {
         // Resource directories do not need repackaging.
         "openjdk/src/test/resources",
         "common/src/test/resources",
+        "platform/src/test/resources",
     ],
 
     platform_apis: true,
+    sdk_version: "test_current",
     manifest: "AndroidManifest-private.xml",
     test_config: "AndroidTest-private.xml",
     libs: [
@@ -972,6 +990,8 @@ android_test {
         "bouncycastle-unbundled",
         "bouncycastle-bcpkix-unbundled",
         "bouncycastle-ocsp-unbundled",
+        "networksecurity-aconfig-flags-lib",
+        "flag-junit",
         "truth",
     ],
     java_version: "1.8",
@@ -1095,4 +1115,19 @@ genrule {
     tools: ["stats-log-api-gen"],
     cmd: "$(location stats-log-api-gen) --java $(out) --module conscrypt --javaPackage com.android.org.conscrypt.metrics --javaClass ConscryptStatsLog",
     out: ["repackaged/common/src/main/java/com/android/org/conscrypt/metrics/ConscryptStatsLog.java"],
+}
+
+genrule {
+    name: "conscrypt_generated_flatbuffers",
+    visibility: [
+        "//packages/modules/Connectivity/networksecurity:__subpackages__",
+    ],
+    tools: [
+        "flatc",
+        "soong_zip",
+    ],
+    srcs: ["platform/src/**/*.fbs"],
+    out: ["conscrypt_fbs.srcjar"],
+    cmd: "$(location flatc) -o $(genDir) --java $(in) " +
+        "&& $(location soong_zip) -o $(out) -C $(genDir) -D $(genDir)",
 }

@@ -34,7 +34,6 @@ apex_defaults {
         default: [],
     }),
     jni_libs: ["libjavacrypto"],
-    prebuilts: ["current_sdkinfo"],
     multilib: {
         both: {
             binaries: ["boringssl_self_test"],
@@ -93,6 +92,7 @@ apex {
     prebuilts: [
         "com.android.conscrypt.ld.config.txt",
         "cacerts_apex",
+        "current_sdkinfo",
     ],
     licenses: [
         "external_conscrypt_license",
@@ -111,6 +111,9 @@ bootclasspath_fragment {
         default: ["conscrypt"],
     }),
     apex_available: ["com.android.conscrypt"],
+    dex_preopt: {
+        profile: "external/conscrypt/apex/boot-image-profile.txt",
+    },
     // The bootclasspath_fragments that provide APIs on which this depends.
     fragments: [
         {

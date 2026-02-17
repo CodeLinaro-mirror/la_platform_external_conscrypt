@@ -17,14 +17,15 @@
 
 package com.android.org.conscrypt.ct;
 
+import com.android.org.conscrypt.Internal;
+import com.android.org.conscrypt.OpenSSLX509Certificate;
+
 import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import com.android.org.conscrypt.Internal;
-import com.android.org.conscrypt.OpenSSLX509Certificate;
 
 /**
  * CertificateEntry structure.
@@ -90,15 +91,18 @@ public class CertificateEntry {
      *
      * @throws IllegalArgumentException if issuerKeyHash isn't 32 bytes
      */
-    public static CertificateEntry createForPrecertificate(byte[] tbsCertificate, byte[] issuerKeyHash) {
+    public static CertificateEntry createForPrecertificate(byte[] tbsCertificate,
+                                                           byte[] issuerKeyHash) {
         return new CertificateEntry(LogEntryType.PRECERT_ENTRY, tbsCertificate, issuerKeyHash);
     }
 
     public static CertificateEntry createForPrecertificate(OpenSSLX509Certificate leaf,
-            OpenSSLX509Certificate issuer) throws CertificateException {
+                                                           OpenSSLX509Certificate issuer)
+            throws CertificateException {
         try {
             if (!leaf.getNonCriticalExtensionOIDs().contains(Constants.X509_SCT_LIST_OID)) {
-                throw new CertificateException("Certificate does not contain embedded signed timestamps");
+                throw new CertificateException(
+                        "Certificate does not contain embedded signed timestamps");
             }
 
             byte[] tbs = leaf.getTBSCertificateWithoutExtension(Constants.X509_SCT_LIST_OID);
@@ -144,5 +148,17 @@ public class CertificateEntry {
         }
         Serialization.writeVariableBytes(output, certificate, Constants.CERTIFICATE_LENGTH_BYTES);
     }
-}
 
+    /**
+     * Expected size of the encoded CertificateEntry structure.
+     */
+    public int encodedLength() {
+        int size = Constants.LOG_ENTRY_TYPE_LENGTH;
+        if (entryType == LogEntryType.PRECERT_ENTRY) {
+            size += issuerKeyHash.length;
+        }
+        size += Constants.CERTIFICATE_LENGTH_BYTES;
+        size += certificate.length;
+        return size;
+    }
+}

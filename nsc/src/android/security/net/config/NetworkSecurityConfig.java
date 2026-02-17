@@ -19,7 +19,6 @@ package android.security.net.config;
 import static android.security.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_DISABLED;
 import static android.security.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_ENABLED;
 import static android.security.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_OPPORTUNISTIC;
-import static android.security.NetworkSecurityPolicy.DOMAIN_ENCRYPTION_MODE_REQUIRED;
 
 import static com.android.org.conscrypt.net.flags.Flags.certificateTransparencyDefaultEnabled;
 import static com.android.org.conscrypt.net.flags.Flags.encryptedClientHelloPlatform;
@@ -84,8 +83,9 @@ public final class NetworkSecurityConfig {
     private final Object mTrustManagerLock = new Object();
 
     private NetworkSecurityConfig(boolean cleartextTrafficPermitted, boolean hstsEnforced,
-            boolean certificateTransparencyVerificationRequired, int domainEncryptionMode,
-            PinSet pins, List<CertificatesEntryRef> certificatesEntryRefs) {
+                                  boolean certificateTransparencyVerificationRequired,
+                                  int domainEncryptionMode, PinSet pins,
+                                  List<CertificatesEntryRef> certificatesEntryRefs) {
         mCleartextTrafficPermitted = cleartextTrafficPermitted;
         mHstsEnforced = hstsEnforced;
         mCertificateTransparencyVerificationRequired = certificateTransparencyVerificationRequired;
@@ -222,7 +222,8 @@ public final class NetworkSecurityConfig {
      * @hide
      */
     public static boolean certificateTransparencyVerificationRequiredDefault() {
-        return sCertificateTransparencyVerificationRequiredDefault.updateAndGet(defaultEnabled
+        return sCertificateTransparencyVerificationRequiredDefault.updateAndGet(
+                defaultEnabled
                 -> defaultEnabled != null ? defaultEnabled
                                           : certificateTransparencyDefaultEnabled()
                                 && CompatChanges.isChangeEnabled(
@@ -237,7 +238,7 @@ public final class NetworkSecurityConfig {
      */
     static int defaultDomainEncryptionMode() {
         return (CompatChanges.isChangeEnabled(ENABLE_DEFAULT_ENCRYPTED_CLIENT_HELLO)
-                        && encryptedClientHelloPlatform())
+                && encryptedClientHelloPlatform())
                 ? DOMAIN_ENCRYPTION_MODE_OPPORTUNISTIC
                 : DOMAIN_ENCRYPTION_MODE_DISABLED;
     }
@@ -445,7 +446,6 @@ public final class NetworkSecurityConfig {
         Builder setDomainEncryptionMode(String domainEncryptionValue) {
             mDomainEncryptionMode = switch (domainEncryptionValue) {
                 case "disabled" -> DOMAIN_ENCRYPTION_MODE_DISABLED;
-                case "required" -> DOMAIN_ENCRYPTION_MODE_REQUIRED;
                 case "enabled" -> DOMAIN_ENCRYPTION_MODE_ENABLED;
                 case "opportunistic" -> DOMAIN_ENCRYPTION_MODE_OPPORTUNISTIC;
                 default -> defaultDomainEncryptionMode();
@@ -479,8 +479,8 @@ public final class NetworkSecurityConfig {
             PinSet pinSet = getEffectivePinSet();
             List<CertificatesEntryRef> entryRefs = getEffectiveCertificatesEntryRefs();
             return new NetworkSecurityConfig(cleartextPermitted, hstsEnforced,
-                    certificateTransparencyVerificationRequired, domainEncryptionMode, pinSet,
-                    entryRefs);
+                                             certificateTransparencyVerificationRequired,
+                                             domainEncryptionMode, pinSet, entryRefs);
         }
     }
 }

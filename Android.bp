@@ -218,7 +218,7 @@ java_aconfig_library {
     min_sdk_version: "30",
     installable: false,
     visibility: [
-        "//cts/tests/tests/networksecurityconfig:__subpackages__",
+        "//cts/tests/netsec:__subpackages__",
     ],
 }
 
@@ -264,7 +264,7 @@ java_aconfig_library {
     min_sdk_version: "30",
     installable: false,
     visibility: [
-        "//cts/tests/tests/networksecurityconfig:__subpackages__",
+        "//cts/tests/netsec:__subpackages__",
         "//frameworks/base",
         "//external/conscrypt/nsc/tests",
     ],
@@ -402,6 +402,19 @@ java_library {
     ],
     lint: {
         baseline_filename: "lint-baseline-conscrypt.xml",
+    },
+    optimize: {
+        enabled: select(release_flag("RELEASE_CONSCRYPT_R8"), {
+            true: true,
+            default: false,
+        }),
+        ignore_warnings: false,
+        shrink: true,
+        optimize: false,
+        obfuscate: false,
+        protect_api_surface: true,
+        include: "r8_include_list.txt",
+        proguard_compatibility: false,
     },
 }
 
@@ -956,6 +969,7 @@ android_test {
         // Resource directories do not need repackaging.
         "openjdk/src/test/resources",
         "common/src/test/resources",
+        "platform/src/test/resources",
     ],
 
     platform_apis: true,

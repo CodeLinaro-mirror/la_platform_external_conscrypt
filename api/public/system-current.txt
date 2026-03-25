@@ -1,5 +1,4 @@
-// Signature format: 6.0
-// - style=java
+// Signature format: 2.0
 package android.net.ssl {
 
   @FlaggedApi("com.android.org.conscrypt.flags.spake2plus_api") public final class PakeClientKeyManagerParameters implements javax.net.ssl.ManagerFactoryParameters {

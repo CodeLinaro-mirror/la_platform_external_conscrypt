@@ -36,11 +36,7 @@ import static org.conscrypt.metrics.ConscryptStatsLog.CERTIFICATE_TRANSPARENCY_V
 import static org.conscrypt.metrics.ConscryptStatsLog.CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_FAIL_OPEN_NO_LOG_LIST_AVAILABLE;
 import static org.conscrypt.metrics.ConscryptStatsLog.CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_SUCCESS;
 import static org.conscrypt.metrics.ConscryptStatsLog.CERTIFICATE_TRANSPARENCY_VERIFICATION_REPORTED__RESULT__RESULT_UNKNOWN;
-import static org.conscrypt.metrics.ConscryptStatsLog.CERTIFICATE_VALIDATION_FAILURE_REPORTED;
-import static org.conscrypt.metrics.ConscryptStatsLog.CERTIFICATE_VALIDATION_FAILURE_REPORTED__REASON__CERTIFICATE_VALIDATION_FAILURE_REASON_NO_TRUST_ANCHOR;
-import static org.conscrypt.metrics.ConscryptStatsLog.CERTIFICATE_VALIDATION_FAILURE_REPORTED__REASON__CERTIFICATE_VALIDATION_FAILURE_REASON_UNKNOWN;
 import static org.conscrypt.metrics.ConscryptStatsLog.TLS_HANDSHAKE_REPORTED;
-import static org.conscrypt.metrics.ConscryptStatsLog.TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED;
 
 import org.conscrypt.CertBlocklistEntry;
 import org.conscrypt.Internal;
@@ -217,24 +213,6 @@ public final class StatsLogImpl implements StatsLog {
               entry.getIndex(), getUid());
     }
 
-    @Override
-    public void reportCertificationValidationFailure(CertificateValidationFailureReason reason,
-                                                     int chainLength) {
-        write(CERTIFICATE_VALIDATION_FAILURE_REPORTED, reason.getId(), chainLength, getUid());
-    }
-
-    @Override
-    public void reportTlsEchHandshake(TlsEncryptedClientHelloHandshake handshake) {
-        write(
-            TLS_ENCRYPTED_CLIENT_HELLO_HANDSHAKE_REPORTED,
-            handshake.getResult().getMetricsValue(),
-            handshake.getUsageReason().getMetricsValue(),
-            handshake.getSkipReason().getMetricsValue(),
-            handshake.getFailureReason().getMetricsValue(),
-            handshake.getHandshakeDurationMillis(),
-            getUid());
-    }
-
     private static final boolean sdkVersionBiggerThan32;
 
     static {
@@ -278,11 +256,5 @@ public final class StatsLogImpl implements StatsLog {
 
     private void write(int atomId, int origin, int index, int uid) {
         ConscryptStatsLog.write(atomId, origin, index, uid);
-    }
-
-    private void write(int atomId, int result, int usageReason, int skipReason, int failureReason,
-                       int handshakeDurationMillis, int uid) {
-        ConscryptStatsLog.write(atomId, result, usageReason, skipReason, failureReason,
-                                handshakeDurationMillis, uid);
     }
 }

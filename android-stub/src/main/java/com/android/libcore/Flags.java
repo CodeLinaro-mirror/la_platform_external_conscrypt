@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 The Android Open Source Project
+ * Copyright (C) 2026 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,17 @@
  * limitations under the License.
  */
 
-package org.conscrypt;
+package com.android.libcore;
 
-@Internal public enum DomainEncryptionMode { UNKNOWN, DISABLED, OPPORTUNISTIC, ENABLED, REQUIRED }
+@SuppressWarnings({"unused", "DoNotCallSuggester"})
+public final class Flags {
+    private Flags() {}
+
+    public static boolean networkSecurityPolicyReasonCtEnabledApi() {
+        throw new RuntimeException("Stub!");
+    }
+
+    public static boolean networkSecurityPolicyEchApi() {
+        throw new RuntimeException("Stub!");
+    }
+}
